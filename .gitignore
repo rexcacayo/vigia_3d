@@ -1,0 +1,13 @@
+# Secretos y datos locales
+.env
+casos/
+*.log
+prueba_camara.jpg
+test.jpg
+zoom.jpg
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
