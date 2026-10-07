@@ -55,13 +55,17 @@ TG_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TG_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # Vigilancia
-INTERVALO = int(os.getenv("INTERVALO_S", "30"))
+# Frecuencia adaptativa: mira poco cuando todo va bien y mucho cuando hay riesgo
+INTERVALO = int(os.getenv("INTERVALO_S", "90"))                  # fase tranquila
+INTERVALO_ALERTA = int(os.getenv("INTERVALO_ALERTA_S", "30"))     # fases de riesgo
+CAPAS_RIESGO = int(os.getenv("CAPAS_RIESGO", "5"))                # primeras capas = riesgo
+ALERTA_MIN = float(os.getenv("ALERTA_MIN", "10"))                 # riesgo tras una sospecha
 CONFIANZA_MIN = float(os.getenv("CONFIANZA_MIN", "0.6"))
 COOLDOWN = int(os.getenv("COOLDOWN_AVISO_S", "600"))
 FALLOS_CAMARA_AVISO = int(os.getenv("FALLOS_CAMARA_AVISO", "3"))
 ZOOM_REGION = tuple(float(v) for v in os.getenv("ZOOM_REGION", "0.15,0.2,0.85,0.9").split(","))
 FILTRO_CON_ZOOM = _bool("FILTRO_CON_ZOOM", "true")  # false = filtro ~45 % más barato
-DIAG_CADA = int(os.getenv("DIAG_CADA", "10"))
+DIAG_CADA_MIN = float(os.getenv("DIAG_CADA_MIN", "10"))  # diagnóstico experto periódico
 INFORME_CADA_MIN = float(os.getenv("INFORME_CADA_MIN", "0"))
 AUTO_PAUSA = _bool("AUTO_PAUSA")
 

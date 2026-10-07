@@ -64,6 +64,9 @@ class Vigia:
         self.ultimo_aviso: dict[str, float] = {}
         self.ultimo_parte = 0.0
         self.ciclo = 0
+        self.ultimo_diag_ts = 0.0
+        self.alerta_hasta = 0.0
+        self.espera = C.INTERVALO
         self.fallos_camara = 0
         self.aviso_camara = False
         self.esperando_comentario: str | None = None
@@ -82,6 +85,8 @@ class Vigia:
         V.contador.reset()
         self.historial.clear()
         self.ciclo = 0
+        self.ultimo_diag_ts = 0.0
+        self.alerta_hasta = 0.0
         self.ultimo_parte = 0.0
         self.fallos_camara = 0
         self.aviso_camara = False
@@ -156,14 +161,10 @@ class Vigia:
         with self.lock:
             self.estado = e
 
-        if e["pausada"]:
-            time.sleep(C.INTERVALO)
-            return
-
-        if not e["imprimiendo"]:
-            if self.trabajo is not None:
+        if e["pausada"] or not e["imprimiendo"]:
+            if not e["pausada"] and self.trabajo is not None:
                 self._fin_trabajo(e)
-            time.sleep(C.INTERVALO * 2)
+            self.espera = C.INTERVALO
             return
 
         if self.trabajo is None or self.trabajo["fichero"] != e.get("fichero"):
@@ -201,9 +202,14 @@ class Vigia:
                  filtro.get("estado"), filtro.get("motivo"))
 
         toca_parte = C.INFORME_CADA_MIN > 0 and time.time() - self.ultimo_parte >= C.INFORME_CADA_MIN * 60
-        profundo = filtro.get("estado") != "ok" or self.ciclo % C.DIAG_CADA == 0 or toca_parte
+        if filtro.get("estado") != "ok":
+            self._modo_alerta("el filtro sospecha")
+        toca_diag = time.time() - self.ultimo_diag_ts >= C.DIAG_CADA_MIN * 60
+        profundo = filtro.get("estado") != "ok" or toca_diag or toca_parte
+        self._calcular_espera(e)
         if not profundo:
             return
+        self.ultimo_diag_ts = time.time()
 
         with self.lock:
             diag = V.diagnosticar(list(self.historial), e)
@@ -211,6 +217,9 @@ class Vigia:
         log.info("Diagnóstico: %s", json.dumps(diag, ensure_ascii=False))
 
         hay_problema = diag.get("estado") != "ok" and diag.get("confianza", 0) >= C.CONFIANZA_MIN
+        if diag.get("estado") != "ok" or diag.get("gravedad") != "ok":
+            self._modo_alerta(f"diagnóstico {diag.get('estado')}/{diag.get('gravedad')}")
+        self._calcular_espera(e)
         cid = self._guardar_caso(jpeg, e, diag, "aviso" if hay_problema else ("parte" if toca_parte else "diag"))
 
         if hay_problema:
@@ -222,6 +231,18 @@ class Vigia:
             self.ultimo_parte = time.time()
 
         self._correcciones(jpeg, e, diag)
+
+    def _modo_alerta(self, motivo: str) -> None:
+        """Sube la frecuencia durante ALERTA_MIN minutos para confirmar o descartar."""
+        if time.time() >= self.alerta_hasta:
+            log.info("⚠️ Modo alerta (%s): una foto cada %ss durante %s min",
+                     motivo, C.INTERVALO_ALERTA, C.ALERTA_MIN)
+        self.alerta_hasta = time.time() + C.ALERTA_MIN * 60
+
+    def _calcular_espera(self, e: dict) -> None:
+        capa = (e.get("capa") or {}).get("actual") or 0
+        riesgo = capa <= C.CAPAS_RIESGO or time.time() < self.alerta_hasta
+        self.espera = C.INTERVALO_ALERTA if riesgo else C.INTERVALO
 
     def _avisar_una_vez(self, clave: str, enviar, espera: int | None = None) -> None:
         if time.time() - self.ultimo_aviso.get(clave, 0) > (espera or C.COOLDOWN):
@@ -398,8 +419,8 @@ class Vigia:
 
     # ================================================================ arranque
     def run(self) -> None:
-        log.info("Vigía arrancado — %s, cada %ss, correcciones: %s",
-                 P.NOMBRE, C.INTERVALO, C.CORRECCION_MODO)
+        log.info("Vigía arrancado — %s · cada %ss (riesgo: %ss) · correcciones: %s",
+                 P.NOMBRE, C.INTERVALO, C.INTERVALO_ALERTA, C.CORRECCION_MODO)
         self.bot.escuchar()
         self.bot.texto("🤖 Vigía en marcha. /ayuda para ver lo que puedo hacer.")
         while True:
@@ -407,7 +428,7 @@ class Vigia:
                 self.ciclo_vigilancia()
             except Exception as ex:  # noqa: BLE001 — el bucle no debe morir
                 log.warning("Error en el ciclo: %s", ex)
-            time.sleep(C.INTERVALO)
+            time.sleep(self.espera)
 
 
 def main() -> None:

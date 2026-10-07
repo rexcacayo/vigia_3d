@@ -54,7 +54,12 @@ flowchart LR
 | **Orquestación** | `vigia/main.py` | Bucle, registro de casos, informes, gestión de botones y órdenes | No |
 | **Configuración** | `vigia/config.py`, `.env` | Parámetros y precios | No |
 
-## Un ciclo de vigilancia (cada `INTERVALO_S`)
+## Un ciclo de vigilancia
+
+La espera entre ciclos es **adaptativa**: `INTERVALO_S` (90 s) en calma e
+`INTERVALO_ALERTA_S` (30 s) en las primeras `CAPAS_RIESGO` capas y durante `ALERTA_MIN`
+minutos después de cualquier sospecha o diagnóstico no-ok. Así se ahorra en las horas
+tranquilas sin perder precisión cuando algo empieza a ir mal.
 
 ```mermaid
 sequenceDiagram
@@ -71,7 +76,7 @@ sequenceDiagram
         M->>A: capturar()
         M->>H: foto (+ ampliación)
         H-->>M: ok / sospecha + motivo
-        opt sospecha, o cada DIAG_CADA ciclos, o toca parte
+        opt sospecha, o cada DIAG_CADA_MIN minutos, o toca parte
             M->>S: últimas 3 fotos + ampliación + estado + skill
             S-->>M: estado, gravedad, tipo, zona, confianza, acción propuesta
             M->>M: guardar caso (foto + JSON)
@@ -87,21 +92,24 @@ sequenceDiagram
 
 ## Decisiones de diseño (y por qué)
 
-1. **Dos niveles de IA.** El filtro (Haiku) es barato y corre cada ciclo; el diagnóstico
+1. **Frecuencia adaptativa.** La mayoría de los fallos dan señales antes de ser graves; en
+   cuanto el filtro sospecha, el vigía pasa a mirar cada 30 s para confirmar o descartar con
+   varias fotos seguidas. En calma, mirar cada 90 s basta y cuesta un tercio.
+2. **Dos niveles de IA.** El filtro (Haiku) es barato y corre cada ciclo; el diagnóstico
    (Sonnet) es más caro y solo se ejecuta cuando hace falta. Así el coste por hora es bajo
    sin perder criterio. Ver [COSTES.md](COSTES.md).
-2. **La IA propone, el código decide.** Claude nunca envía comandos a la impresora. Elige
+3. **La IA propone, el código decide.** Claude nunca envía comandos a la impresora. Elige
    una acción de una lista blanca; `correcciones.py` aplica límites por material, exige que
    la propuesta se repita, limita el número de cambios y revierte. Un modelo que se equivoca
    no puede, por diseño, poner la boquilla a 300 °C.
-3. **El conocimiento vive en Markdown, no en el código.** `skill/*.md` se relee en cada
+4. **El conocimiento vive en Markdown, no en el código.** `skill/*.md` se relee en cada
    diagnóstico. Mejorar el criterio no requiere programar, y el feedback 👎 se añade solo a
    `aprendizajes.md`.
-4. **Un adaptador por familia de impresoras.** Todo lo que depende de la máquina está en un
+5. **Un adaptador por familia de impresoras.** Todo lo que depende de la máquina está en un
    fichero con un contrato pequeño. Ver [ADAPTADORES.md](ADAPTADORES.md).
-5. **La máquina describe su propia cámara.** Cada adaptador aporta `DESCRIPCION`, que entra
+6. **La máquina describe su propia cámara.** Cada adaptador aporta `DESCRIPCION`, que entra
    en el prompt: el diagnóstico sabe qué puede ver y qué no.
-6. **Fallar en silencio nunca, morir tampoco.** Errores de red, cámara ocupada o respuestas
+7. **Fallar en silencio nunca, morir tampoco.** Errores de red, cámara ocupada o respuestas
    raras se registran y el bucle sigue; si la cámara falla varias veces seguidas, avisa.
 
 ## Seguridad

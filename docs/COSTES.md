@@ -1,8 +1,10 @@
 # Coste por hora de impresión
 
 El vigía solo gasta en la **API de Claude**. Telegram y la impresora no cuestan nada.
-El coste depende sobre todo de **cada cuánto mira** (`INTERVALO_S`) y de **cuántas veces
-despierta al experto** (diagnósticos profundos).
+El coste depende sobre todo de **cada cuánto mira** y de **cuántas veces despierta al
+experto** (diagnósticos profundos). La frecuencia es **adaptativa**: cada `INTERVALO_S` en
+calma y cada `INTERVALO_ALERTA_S` en las primeras capas y tras cualquier sospecha, así que
+se paga precisión solo cuando hace falta.
 
 > 💡 No hace falta fiarse de estas estimaciones: el vigía **mide el coste real** con los
 > tokens que devuelve la API. Escribe `/coste` en Telegram durante la impresión; el
@@ -37,26 +39,30 @@ el segundo lee la skill de la caché, unas 10 veces más barato.
 
 ## Coste por hora según el perfil
 
-| Perfil | Ajustes | Filtros/h | Diagnósticos/h* | **Coste/h** |
+| Perfil | Ajustes | Filtros/h† | Diagnósticos/h* | **Coste/h** |
 |---|---|---|---|---|
-| **Pruebas** | `INTERVALO_S=30` · `INFORME_CADA_MIN=5` · `DIAG_CADA=10` | 120 × $0,0016 = $0,19 | ~20 × $0,0075 = $0,15 | **≈ $0,35** |
-| **Normal** | `INTERVALO_S=30` · `INFORME_CADA_MIN=30` · `DIAG_CADA=20` | 120 × $0,0016 = $0,19 | ~11 × $0,011 = $0,12 | **≈ $0,30** |
-| **Económico** | `INTERVALO_S=60` · `INFORME_CADA_MIN=0` · `DIAG_CADA=20` · `FILTRO_CON_ZOOM=false` | 60 × $0,0008 = $0,05 | ~5 × $0,012 = $0,06 | **≈ $0,11** |
+| **Pruebas** | calma 60 s · alerta 20 s · experto cada 5 min · parte cada 5 min | ~70 × $0,0016 = $0,11 | ~15 × $0,0075 = $0,11 | **≈ $0,22** |
+| **Normal** (defecto) | calma 90 s · alerta 30 s · experto cada 10 min · parte cada 30 min | ~45 × $0,0016 = $0,07 | ~9 × $0,011 = $0,10 | **≈ $0,17** |
+| **Económico** | calma 180 s · alerta 45 s · experto cada 20 min · sin partes · filtro sin zoom | ~25 × $0,0008 = $0,02 | ~5 × $0,012 = $0,06 | **≈ $0,08** |
 
+† Suponiendo ~15 % del tiempo en modo alerta (primeras capas + sospechas).
 \* Periódicos + partes + los que dispara el filtro al sospechar (se suponen 2–5 por hora).
+
+**Tiempo de detección:** en calma, un fallo se ve como mucho en `INTERVALO_S` (90 s en el
+perfil normal). Desde la primera sospecha, el vigía mira cada `INTERVALO_ALERTA_S` (30 s).
 
 ### Ejemplos por impresión
 | Impresión | Pruebas | Normal | Económico |
 |---|---|---|---|
-| 2 h | ~$0,70 | ~$0,60 | ~$0,25 |
-| 5 h 46 m (la peana de Dora) | ~$2,00 | ~$1,75 | ~$0,65 |
-| 10 h | ~$3,50 | ~$3,00 | ~$1,10 |
+| 2 h | ~$0,45 | ~$0,35 | ~$0,16 |
+| 5 h 46 m (la peana de Dora) | ~$1,25 | ~$1,00 | ~$0,45 |
+| 10 h | ~$2,20 | ~$1,70 | ~$0,80 |
 
 ## El factor que más pesa: los falsos positivos del filtro
 
 Cada vez que el filtro dice "sospecha", se paga un diagnóstico de Sonnet. Si el filtro se
 vuelve alarmista y sospecha en **todos** los ciclos, el coste sube a **~$1/h**
-(120 diagnósticos/h). Por eso:
+(el modo alerta lo mantiene a 30 s y cada ciclo despierta a Sonnet: ~120 diagnósticos/h). Por eso:
 - Mira en el log la línea `filtro: sospecha — <motivo>`. Si se repite sin motivo real,
   marca 👎 en los avisos y ajusta el prompt `FILTRO` en `vigia/vision.py` (ver
   [MODIFICAR.md](MODIFICAR.md)).
@@ -66,15 +72,16 @@ vuelve alarmista y sospecha en **todos** los ciclos, el coste sube a **~$1/h**
 
 | Palanca | Efecto | Contrapartida |
 |---|---|---|
-| `INTERVALO_S=60` | Filtro a la mitad | Un fallo se detecta, como mucho, 30 s más tarde |
+| `INTERVALO_S` más alto (120–180) | Menos filtros en calma | En calma, un fallo tarda más en verse (el modo alerta sigue a 30 s) |
 | `FILTRO_CON_ZOOM=false` | Filtro ~50 % más barato | Ve peor los detalles pequeños |
 | `INFORME_CADA_MIN=0` o alto | Menos diagnósticos | Menos partes de "todo va bien" |
-| `DIAG_CADA` alto (20–40) | Menos diagnósticos periódicos | El experto revisa con menos frecuencia |
+| `DIAG_CADA_MIN` alto (20–30) | Menos diagnósticos periódicos | El experto revisa con menos frecuencia |
+| `ALERTA_MIN` más bajo (5) | Menos tiempo a frecuencia alta | Menos fotos para confirmar una sospecha |
 | `MODELO_DIAGNOSTICO` = Haiku | Diagnóstico ~3–5× más barato | Diagnósticos menos finos |
 
 ## Referencia: coste de la impresión en sí
 
 Para ponerlo en contexto, una hora de impresión FDM en una máquina como la AD5M Pro gasta
 del orden de 10–25 g de filamento (≈ €0,20–0,60) y 0,1–0,3 kWh de electricidad. Con el
-perfil normal, el vigía añade un coste del mismo orden. Compensa en cuanto evita **una**
+perfil normal, el vigía añade un coste menor que eso. Compensa en cuanto evita **una**
 impresión fallida de varias horas.

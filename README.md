@@ -21,7 +21,8 @@ Velocidad: 100 % → 80 %            [ ✅ Aplicar ]  [ ❌ Ignorar ]
 
 ## Qué hace
 
-- 👁️ **Vigila** cada 30 s con un filtro barato (Claude Haiku) y llama al experto
+- 👁️ **Vigila con frecuencia adaptativa**: cada 90 s en calma y cada 30 s en las primeras
+  capas o en cuanto algo le parece raro. Un filtro barato (Claude Haiku) llama al experto
   (Claude Sonnet + skill) solo cuando hace falta.
 - 🧠 **Diagnostica** con contexto: material, capa, temperaturas, evolución entre fotos y
   una ampliación de la pieza.
@@ -31,7 +32,7 @@ Velocidad: 100 % → 80 %            [ ✅ Aplicar ]  [ ❌ Ignorar ]
   (lista blanca, límites por material, persistencia, máximo de cambios, reversión).
 - 📚 **Aprende**: 👎 + una frase en Telegram y ese caso pasa a la skill.
 - 📝 **Informe post-mortem** con recomendaciones de perfil y calibraciones para OrcaSlicer.
-- 💶 **Mide su propio coste**: unos **$0,10–0,35 por hora** de impresión según el perfil.
+- 💶 **Mide su propio coste**: unos **$0,08–0,25 por hora** de impresión según el perfil.
 - 🔌 **Enchufable**: un fichero por familia de impresoras.
 
 ## Impresoras

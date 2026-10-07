@@ -1,5 +1,11 @@
 # Historial de cambios
 
+## 0.5.0: frecuencia adaptativa
+- Mira cada 90 s en calma y cada 30 s en las primeras capas y durante 10 min tras
+  cualquier sospecha: menos coste sin perder precisión cuando algo empieza a fallar.
+- El diagnóstico experto periódico pasa a medirse en minutos (`DIAG_CADA_MIN`).
+- Coste estimado del perfil normal: ~$0,17/h (antes ~$0,30/h).
+
 ## 0.4.0: agente con skill
 - Arquitectura modular con **adaptadores de impresora** enchufables (`PRINTER_TIPO`).
 - **Skill** en Markdown (`skill/`) que se relee en cada diagnóstico; la máquina aporta su

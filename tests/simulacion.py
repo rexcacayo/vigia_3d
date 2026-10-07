@@ -18,7 +18,8 @@ os.environ.update({
     "PRINTER_TIPO": "flashforge", "PRINTER_IP": "192.0.2.1", "PRINTER_SN": "SN-TEST",
     "PRINTER_CHECK_CODE": "test", "ANTHROPIC_API_KEY": "sk-test", "TELEGRAM_BOT_TOKEN": "t",
     "TELEGRAM_CHAT_ID": "42", "DIR_CASOS": str(TMP), "CORRECCION_ESPERA_S": "0",
-    "INFORME_CADA_MIN": "0", "INTERVALO_S": "0", "CORRECCION_MODO": "proponer",
+    "INFORME_CADA_MIN": "0", "INTERVALO_S": "90", "INTERVALO_ALERTA_S": "30",
+    "CAPAS_RIESGO": "5", "CORRECCION_MODO": "proponer",
 })
 
 from PIL import Image  # noqa: E402
@@ -80,6 +81,7 @@ LENTO = {"estado": "fallo", "gravedad": "vigilar", "tipo": "isla_fallida", "conf
 STOP = {"estado": "fallo", "gravedad": "detener", "tipo": "espagueti", "confianza": 0.9,
         "accion": {"tipo": "pausar"}, "explicacion": "nido de espagueti"}
 SOSPECHA = {"estado": "sospecha", "motivo": "algo raro"}
+FILTRO_OK = {"estado": "ok", "motivo": "normal"}
 MSG = {"chat": {"id": 42}, "message_id": 1}
 
 
@@ -122,6 +124,19 @@ def main() -> None:
     comprobar("No era espagueti" in C.FICHERO_APRENDIZAJES.read_text(), "👎 + comentario → aprendizaje")
 
     comprobar(V.contador.resumen()["usd"] > 0, "cuenta el coste de Claude")
+
+    print("Frecuencia adaptativa:")
+    v.alerta_hasta = 0
+    v.ultimo_diag_ts = __import__("time").time()
+    ciclo(FILTRO_OK)
+    comprobar(v.espera == 90, "fase tranquila → una foto cada 90 s")
+    ciclo(SOSPECHA, OK)
+    comprobar(v.espera == 30, "tras una sospecha → modo alerta, cada 30 s")
+    v.alerta_hasta = 0
+    DET["printLayer"] = 3
+    ciclo(FILTRO_OK)
+    comprobar(v.espera == 30, "primeras capas → cada 30 s")
+    DET["printLayer"] = 240
 
     DET["status"] = "completed"
     RESPUESTAS.append("## Resumen\nTodo **bien**.")

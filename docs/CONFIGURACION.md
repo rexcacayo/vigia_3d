@@ -29,8 +29,11 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 ## Vigilancia
 | Variable | Por defecto | Qué es |
 |---|---|---|
-| `INTERVALO_S` | `30` | Segundos entre ciclos (foto + filtro) |
-| `DIAG_CADA` | `10` | Diagnóstico profundo cada N ciclos aunque el filtro diga ok |
+| `INTERVALO_S` | `90` | Segundos entre ciclos (foto + filtro) en **calma** |
+| `INTERVALO_ALERTA_S` | `30` | Segundos entre ciclos en **fases de riesgo** |
+| `CAPAS_RIESGO` | `5` | Las primeras N capas se vigilan como riesgo |
+| `ALERTA_MIN` | `10` | Minutos en modo alerta tras una sospecha o un diagnóstico no-ok |
+| `DIAG_CADA_MIN` | `10` | Diagnóstico experto periódico cada N minutos aunque el filtro diga ok |
 | `INFORME_CADA_MIN` | `0` | Parte con foto cada N minutos (0 = solo avisos) |
 | `CONFIANZA_MIN` | `0.6` | Confianza mínima para avisar de un problema |
 | `COOLDOWN_AVISO_S` | `600` | No repetir el mismo aviso antes de N s (los de detener, a la tercera parte) |
@@ -56,8 +59,8 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 ## Perfiles de ejemplo
 | Perfil | Ajustes | Para qué |
 |---|---|---|
-| **Pruebas** | `INTERVALO_S=30` `INFORME_CADA_MIN=5` `DIAG_CADA=10` | Ver qué piensa en cada momento y calibrar |
-| **Normal** | `INTERVALO_S=30` `INFORME_CADA_MIN=30` `DIAG_CADA=20` | Uso diario |
-| **Económico** | `INTERVALO_S=60` `INFORME_CADA_MIN=0` `DIAG_CADA=20` `FILTRO_CON_ZOOM=false` | Impresiones largas y fiables |
+| **Pruebas** | `INTERVALO_S=60` `INTERVALO_ALERTA_S=20` `DIAG_CADA_MIN=5` `INFORME_CADA_MIN=5` | Ver qué piensa en cada momento y calibrar |
+| **Normal** (por defecto) | `INTERVALO_S=90` `INTERVALO_ALERTA_S=30` `DIAG_CADA_MIN=10` `INFORME_CADA_MIN=30` | Uso diario |
+| **Económico** | `INTERVALO_S=180` `INTERVALO_ALERTA_S=45` `DIAG_CADA_MIN=20` `INFORME_CADA_MIN=0` `FILTRO_CON_ZOOM=false` | Impresiones largas y fiables |
 
 Costes de cada perfil: [COSTES.md](COSTES.md).
