@@ -1,5 +1,8 @@
 # 🔭 Vigía 3D
 
+[![tests](https://github.com/rexcacayo/vigia_3d/actions/workflows/tests.yml/badge.svg)](https://github.com/rexcacayo/vigia_3d/actions/workflows/tests.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+
 **Un vigía con IA para tu impresora 3D.** Mira la impresión por la cámara, entiende qué
 pasa con Claude, te avisa por Telegram con foto y diagnóstico, **propone correcciones en
 marcha** (velocidad, temperatura, Z offset…) que aplicas con un botón, y al terminar te
@@ -80,11 +83,22 @@ Escribe `/ayuda` a tu bot. Guía de todas las opciones: [docs/CONFIGURACION.md](
 | [Compatibilidad](docs/COMPATIBILIDAD.md) | Impresoras y comandos de cada API |
 | [Costes](docs/COSTES.md) | Cuánto cuesta por hora y cómo bajarlo |
 
-## Seguridad
+## ⚠️ Aviso de seguridad
+
+Una impresora 3D trabaja con piezas a más de 200 °C. **El Vigía 3D es una ayuda, no
+sustituye la supervisión humana ni las medidas de seguridad de tu taller** (detector de
+humo, no dejar la impresora sin nadie cerca de forma prolongada, revisar la instalación
+eléctrica…). La IA puede equivocarse: no detectar un fallo o avisar de uno que no existe.
+Este software se ofrece **sin ninguna garantía** (ver [LICENSE](LICENSE)) y lo usas bajo
+tu propia responsabilidad.
+
+## Seguridad del diseño
 - Solo **tu chat** de Telegram puede dar órdenes.
 - La IA **nunca** envía comandos directos: elige de una lista blanca y el código aplica
   límites duros. **Nunca cancela** una impresión.
 - Modo por defecto `proponer`: nada cambia sin que pulses **Aplicar**.
+- **Tope de gasto diario** (`PRESUPUESTO_DIA_USD`, 2 $ por defecto): al alcanzarlo deja de
+  consultar a Claude y te avisa.
 
 ## Probar sin impresora
 ```bash

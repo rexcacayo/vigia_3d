@@ -50,6 +50,9 @@ def precio(modelo: str) -> tuple[float, float, float, float]:
     return (3.00, 15.00, 3.75, 0.30)  # desconocido: estimación prudente
 
 
+# Tope de gasto diario en USD (0 = sin tope). Al 80 % avisa; al 100 % deja de llamar a Claude.
+PRESUPUESTO_DIA = float(os.getenv("PRESUPUESTO_DIA_USD", "2"))
+
 # Telegram
 TG_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TG_CHAT = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -75,6 +78,9 @@ CORRECCION_CONFIANZA = float(os.getenv("CORRECCION_CONFIANZA", "0.8"))
 CORRECCION_MAX = int(os.getenv("CORRECCION_MAX", "3"))
 CORRECCION_ESPERA_S = int(os.getenv("CORRECCION_ESPERA_S", "300"))
 REVERTIR_TRAS_OK = int(os.getenv("REVERTIR_TRAS_OK", "3"))  # diagnósticos ok seguidos
+
+# Fotos de casos de más de N días se borran al empezar cada impresión (0 = nunca)
+DIAS_RETENCION = int(os.getenv("DIAS_RETENCION", "30"))
 
 # Ficheros
 DIR_CASOS = Path(os.getenv("DIR_CASOS", str(RAIZ / "casos")))

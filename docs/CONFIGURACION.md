@@ -42,6 +42,12 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 | `FILTRO_CON_ZOOM` | `true` | El filtro mira también la ampliación (más preciso, ~2× su coste) |
 | `AUTO_PAUSA` | `false` | Pausar sola ante un "detener" (si no, te da el botón) |
 
+## Gasto y limpieza
+| Variable | Por defecto | Qué es |
+|---|---|---|
+| `PRESUPUESTO_DIA_USD` | `2` | Tope de gasto diario en Claude (0 = sin tope). Al 80 % avisa; al 100 % deja de consultar a Claude hasta el día siguiente y sigue vigilando solo el estado de la máquina |
+| `DIAS_RETENCION` | `30` | Borra las fotos de casos con más de N días al arrancar y al empezar cada impresión (0 = nunca). `casos.jsonl` e informes se conservan |
+
 ## Correcciones
 | Variable | Por defecto | Qué es |
 |---|---|---|

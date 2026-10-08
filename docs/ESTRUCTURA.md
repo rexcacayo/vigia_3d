@@ -8,6 +8,7 @@ vigia_3d/
 ├── LICENSE
 ├── .env.example               ← plantilla de configuración (cópiala a .env)
 ├── .gitignore
+├── .github/workflows/tests.yml  ← ejecuta la simulación en cada push (GitHub Actions)
 ├── requirements.txt           ← anthropic, requests, pillow
 ├── instalar.sh                ← crea venv, instala y completa tu .env sin pisarlo
 ├── arrancar.sh                ← lanza el vigía en tmux con log

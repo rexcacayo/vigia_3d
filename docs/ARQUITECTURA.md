@@ -121,6 +121,11 @@ sequenceDiagram
   [MODIFICAR.md](MODIFICAR.md#4-reglas-de-corrección)).
 - Credenciales solo en `.env` (excluido de git). El código no contiene datos personales.
 - Las propuestas caducan a los 10 minutos o si la impresión ya no está en marcha.
+- **Tope de gasto diario**: al agotarse, no se hacen más llamadas a Claude ese día.
+- **Candado de cámara**: el bucle y las órdenes de Telegram nunca piden foto a la vez
+  (cámaras de un solo espectador).
+- **Resiliencia**: reintentos con espera ante fallos de Claude o Telegram; si Claude no
+  responde 3 veces seguidas, aviso (y otro cuando vuelve). Los errores repetidos no inundan el log.
 
 ## Datos que guarda (`DIR_CASOS`)
 
@@ -130,6 +135,9 @@ sequenceDiagram
 | `casos.jsonl` | Una línea por caso: estado de la máquina + diagnóstico completo |
 | `vigia.log` | Log del programa (si arrancas con `arrancar.sh`) |
 | `informes/*.md` | Informe post-mortem + registro JSON de la impresión |
+| `gasto_diario.json` | Gasto en Claude por día (para el tope `PRESUPUESTO_DIA_USD`) |
+
+Las fotos se borran a los `DIAS_RETENCION` días; `casos.jsonl` e informes se conservan.
 
 Los casos etiquetados con 👍/👎 son la base para mejorar la skill (y, en el futuro, para
 evaluar cambios de prompt con datos reales).

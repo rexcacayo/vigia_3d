@@ -40,18 +40,23 @@ class Bot:
             log.warning("Telegram sin configurar: los avisos solo saldrán en el log")
 
     # ------------------------------------------------------------ envío
-    def _post(self, metodo: str, **kw):
+    def _post(self, metodo: str, intentos: int = 3, **kw):
+        """Llama a la API de Telegram reintentando los fallos de red (2 s, 5 s)."""
         if not self.activo:
             return None
-        try:
-            r = requests.post(f"{API}/{metodo}", timeout=30, **kw)
-            j = r.json()
-            if not j.get("ok"):
-                log.warning("Telegram %s: %s", metodo, j.get("description"))
-            return j.get("result")
-        except Exception as e:  # noqa: BLE001
-            log.warning("Telegram %s falló: %s", metodo, e)
-            return None
+        for n in range(intentos):
+            try:
+                r = requests.post(f"{API}/{metodo}", timeout=30, **kw)
+                j = r.json()
+                if not j.get("ok"):
+                    log.warning("Telegram %s: %s", metodo, j.get("description"))
+                return j.get("result")
+            except Exception as e:  # noqa: BLE001
+                if n == intentos - 1:
+                    log.warning("Telegram %s falló tras %s intentos: %s", metodo, intentos, e)
+                    return None
+                time.sleep((2, 5, 10)[min(n, 2)])
+        return None
 
     def texto(self, texto: str, botones=None) -> dict | None:
         log.info("TG ▶ %s", texto.replace("\n", " | ")[:200])
@@ -84,7 +89,7 @@ class Bot:
 
     def _bucle(self) -> None:
         # Ignora lo pendiente de antes de arrancar
-        r = self._post("getUpdates", data={"offset": -1, "timeout": 0})
+        r = self._post("getUpdates", intentos=1, data={"offset": -1, "timeout": 0})
         if r:
             self.offset = r[-1]["update_id"] + 1
         while True:

@@ -1,0 +1,20 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  simulacion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+      - name: Compilar
+        run: python -m py_compile vigia/*.py vigia/impresoras/*.py tests/*.py
+      - name: Simulación de impresión completa
+        run: python -m tests.simulacion

@@ -19,7 +19,8 @@ os.environ.update({
     "PRINTER_CHECK_CODE": "test", "ANTHROPIC_API_KEY": "sk-test", "TELEGRAM_BOT_TOKEN": "t",
     "TELEGRAM_CHAT_ID": "42", "DIR_CASOS": str(TMP), "CORRECCION_ESPERA_S": "0",
     "INFORME_CADA_MIN": "0", "INTERVALO_S": "90", "INTERVALO_ALERTA_S": "30",
-    "CAPAS_RIESGO": "5", "CORRECCION_MODO": "proponer",
+    "CAPAS_RIESGO": "5", "CORRECCION_MODO": "proponer", "PRESUPUESTO_DIA_USD": "2",
+    "DIAS_RETENCION": "30",
 })
 
 from PIL import Image  # noqa: E402
@@ -57,7 +58,8 @@ def _control(cmd, args):
 
 P.detalle = lambda: dict(DET)
 P.control = _control
-P.capturar = lambda: JPG
+import vigia.maquina as _maq  # noqa: E402
+_maq._capturar_original = lambda: JPG
 T.Bot._post = lambda self, metodo, **kw: ENVIADOS.append(
     (metodo, (kw.get("data") or {}).get("text") or (kw.get("data") or {}).get("caption") or "")
 ) or {"message_id": 1, "chat": {"id": 42}}
@@ -137,6 +139,55 @@ def main() -> None:
     ciclo(FILTRO_OK)
     comprobar(v.espera == 30, "primeras capas → cada 30 s")
     DET["printLayer"] = 240
+
+    print("Robustez:")
+    # candado de cámara: dos capturas simultáneas nunca se solapan
+    import threading
+    import time as _t
+    dentro, maximo = [0], [0]
+
+    def lenta():
+        dentro[0] += 1
+        maximo[0] = max(maximo[0], dentro[0])
+        _t.sleep(0.05)
+        dentro[0] -= 1
+        return JPG
+    _maq._capturar_original = lenta
+    hilos = [threading.Thread(target=P.capturar) for _ in range(4)]
+    [h.start() for h in hilos]
+    [h.join() for h in hilos]
+    _maq._capturar_original = lambda: JPG
+    comprobar(maximo[0] == 1, "candado de cámara: nunca dos capturas a la vez")
+
+    # limpieza de fotos antiguas
+    vieja = TMP / "20200101-000000.jpg"
+    vieja.write_bytes(JPG)
+    os.utime(vieja, (0, 0))
+    v._limpiar_casos()
+    comprobar(not vieja.exists(), "borra fotos con más de DIAS_RETENCION días")
+
+    # aviso si Claude no responde
+    import anthropic
+    # Error de conexión de la API sin depender de la librería HTTP concreta del SDK
+    err = anthropic.APIConnectionError.__new__(anthropic.APIConnectionError)
+    Exception.__init__(err, "sin conexión")
+    err.message = "sin conexión"
+    for _ in range(3):
+        v._error_ciclo(err)
+    comprobar(any("Claude no responde" in e[1] for e in ENVIADOS), "avisa si Claude no responde 3 veces")
+    RESPUESTAS.append(FILTRO_OK)
+    v.ciclo_vigilancia()
+    comprobar(any("vuelve a responder" in e[1] for e in ENVIADOS), "avisa cuando Claude vuelve")
+
+    # tope de gasto diario
+    V.gasto.datos[V.gasto._hoy()] = 2.5
+    llamadas_antes = len(RESPUESTAS)
+    RESPUESTAS.append(FILTRO_OK)
+    v.ciclo_vigilancia()
+    comprobar(len(RESPUESTAS) == llamadas_antes + 1, "con el presupuesto agotado no llama a Claude")
+    comprobar(any("Presupuesto diario agotado" in e[1] for e in ENVIADOS), "y avisa del presupuesto agotado")
+    RESPUESTAS.clear()
+    V.gasto.datos[V.gasto._hoy()] = 0
 
     DET["status"] = "completed"
     RESPUESTAS.append("## Resumen\nTodo **bien**.")

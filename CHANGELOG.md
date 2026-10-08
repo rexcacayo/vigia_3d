@@ -1,5 +1,13 @@
 # Historial de cambios
 
+## 0.6.0: robustez para uso público
+- **Tope de gasto diario** (`PRESUPUESTO_DIA_USD`): aviso al 80 %, corte al 100 %.
+- **Candado de cámara**: el bucle y Telegram nunca piden foto a la vez.
+- **Reintentos** ante fallos de Claude y Telegram; aviso si Claude deja de responder y
+  cuando vuelve; los errores repetidos ya no inundan el log.
+- **Limpieza** automática de fotos antiguas (`DIAS_RETENCION`).
+- **Tests automáticos** en GitHub Actions y aviso de seguridad en el README.
+
 ## 0.5.0: frecuencia adaptativa
 - Mira cada 90 s en calma y cada 30 s en las primeras capas y durante 10 min tras
   cualquier sospecha: menos coste sin perder precisión cuando algo empieza a fallar.

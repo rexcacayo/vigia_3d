@@ -16,8 +16,50 @@ log = logging.getLogger("vigia.vision")
 
 claude = anthropic.Anthropic(
     default_headers={"anthropic-workspace-id": C.ANTHROPIC_WORKSPACE_ID}
-    if C.ANTHROPIC_WORKSPACE_ID else None
+    if C.ANTHROPIC_WORKSPACE_ID else None,
+    max_retries=4,   # reintentos con espera creciente ante 429/5xx/cortes de red
+    timeout=90,
 )
+
+
+class PresupuestoAgotado(Exception):
+    """Se ha alcanzado PRESUPUESTO_DIA_USD: no se hacen más llamadas a Claude hoy."""
+
+
+class GastoDiario:
+    """Gasto acumulado por día, guardado en disco para que sobreviva a reinicios."""
+
+    def __init__(self) -> None:
+        self.fichero = C.DIR_CASOS / "gasto_diario.json"
+        try:
+            self.datos: dict[str, float] = json.loads(self.fichero.read_text())
+        except (OSError, ValueError):
+            self.datos = {}
+
+    @staticmethod
+    def _hoy() -> str:
+        return time.strftime("%Y-%m-%d")
+
+    def hoy(self) -> float:
+        return self.datos.get(self._hoy(), 0.0)
+
+    def sumar(self, usd: float) -> None:
+        self.datos[self._hoy()] = round(self.hoy() + usd, 6)
+        # conserva solo los últimos 60 días
+        self.datos = dict(sorted(self.datos.items())[-60:])
+        try:
+            self.fichero.write_text(json.dumps(self.datos))
+        except OSError as e:
+            log.debug("No pude guardar el gasto diario: %s", e)
+
+    def fraccion(self) -> float:
+        return self.hoy() / C.PRESUPUESTO_DIA if C.PRESUPUESTO_DIA > 0 else 0.0
+
+    def agotado(self) -> bool:
+        return C.PRESUPUESTO_DIA > 0 and self.hoy() >= C.PRESUPUESTO_DIA
+
+
+gasto = GastoDiario()
 
 _AJUSTES = ("velocidad", "flujo", "temp_boquilla", "temp_cama", "z_offset", "ventilador", "pausar")
 class Contador:
@@ -40,7 +82,9 @@ class Contador:
         cw = getattr(uso, "cache_creation_input_tokens", 0) or 0
         cr = getattr(uso, "cache_read_input_tokens", 0) or 0
         pi, po, pw, pr = C.precio(modelo)
-        self.usd += (ent * pi + sal * po + cw * pw + cr * pr) / 1_000_000
+        usd = (ent * pi + sal * po + cw * pw + cr * pr) / 1_000_000
+        self.usd += usd
+        gasto.sumar(usd)
         for k, n in zip(self.tokens, (ent, sal, cw, cr)):
             self.tokens[k] += n
         self.llamadas[modelo] = self.llamadas.get(modelo, 0) + 1
@@ -56,6 +100,8 @@ contador = Contador()
 
 
 def _crear(**kw):
+    if gasto.agotado():
+        raise PresupuestoAgotado(f"gastados ${gasto.hoy():.2f} de ${C.PRESUPUESTO_DIA:.2f} hoy")
     resp = claude.messages.create(**kw)
     contador.sumar(kw["model"], getattr(resp, "usage", None))
     return resp

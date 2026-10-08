@@ -68,6 +68,18 @@ vuelve alarmista y sospecha en **todos** los ciclos, el coste sube a **~$1/h**
   [MODIFICAR.md](MODIFICAR.md)).
 - `/coste` a mitad de impresión te dice el ritmo real (`$/h`).
 
+## Tope de gasto diario
+
+`PRESUPUESTO_DIA_USD` (2 $ por defecto) protege de sorpresas, por ejemplo un filtro
+alarmista o una impresión de 3 días:
+- Al **80 %** del tope, aviso por Telegram.
+- Al **100 %**, el vigía deja de consultar a Claude hasta el día siguiente y sigue
+  vigilando solo el estado de la máquina (errores y fin de impresión). Te avisa.
+- El gasto se guarda en `DIR_CASOS/gasto_diario.json`, así que sobrevive a reinicios.
+- `/coste` muestra lo gastado en la impresión y en el día.
+
+Con el perfil normal (~$0,17/h), 2 $ dan para unas 11 horas de vigilancia al día.
+
 ## Cómo bajar el coste
 
 | Palanca | Efecto | Contrapartida |

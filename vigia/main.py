@@ -6,6 +6,8 @@ import time
 from collections import deque
 from datetime import datetime
 
+import anthropic
+
 from . import config as C
 from .maquina import P
 from . import vision as V
@@ -70,6 +72,9 @@ class Vigia:
         self.fallos_camara = 0
         self.aviso_camara = False
         self.esperando_comentario: str | None = None
+        self.fallos_claude = 0
+        self.aviso_claude = False
+        self.ultimo_error = ("", 0.0)
         self.trabajo: dict | None = None
         self.bot.on_comando = self.comando
         self.bot.on_boton = self.boton
@@ -83,6 +88,7 @@ class Vigia:
                         "casos": [], "correcciones": [], "feedback": []}
         self.motor.reset()
         V.contador.reset()
+        self._limpiar_casos()
         self.historial.clear()
         self.ciclo = 0
         self.ultimo_diag_ts = 0.0
@@ -148,8 +154,10 @@ class Vigia:
         c = V.contador.resumen()
         llam = ", ".join(f"{m.split('-')[1]} ×{n}" for m, n in c["llamadas"].items()) or "ninguna"
         por_hora = f" · ~${c['usd_hora']:.2f}/h" if c["usd_hora"] else ""
+        tope = f" de ${C.PRESUPUESTO_DIA:.2f}" if C.PRESUPUESTO_DIA > 0 else ""
         return (f"💶 <b>Coste de vigilancia</b>: ${c['usd']:.3f} en {c['horas']:.1f} h{por_hora}\n"
-                f"Llamadas: {esc(llam)}")
+                f"Llamadas: {esc(llam)}\n"
+                f"Hoy: ${V.gasto.hoy():.2f}{tope}")
 
     @staticmethod
     def _botones_feedback(cid: str):
@@ -197,7 +205,15 @@ class Vigia:
             self.ultimo_jpeg = jpeg
         self.ciclo += 1
 
-        filtro = V.filtrar(jpeg)
+        if V.gasto.agotado():
+            self._aviso_presupuesto_agotado()
+            return
+        try:
+            filtro = V.filtrar(jpeg)
+        except V.PresupuestoAgotado:
+            self._aviso_presupuesto_agotado()
+            return
+        self._claude_ok()
         log.info("Capa %s/%s · filtro: %s — %s", e["capa"]["actual"], e["capa"]["total"],
                  filtro.get("estado"), filtro.get("motivo"))
 
@@ -211,9 +227,18 @@ class Vigia:
             return
         self.ultimo_diag_ts = time.time()
 
-        with self.lock:
-            diag = V.diagnosticar(list(self.historial), e)
+        try:
+            with self.lock:
+                diag = V.diagnosticar(list(self.historial), e)
+        except V.PresupuestoAgotado:
+            self._aviso_presupuesto_agotado()
+            return
         self.ultimo_diag = diag
+        if V.gasto.fraccion() >= 0.8:
+            self._avisar_una_vez("presupuesto80:" + time.strftime("%Y-%m-%d"), lambda: self.bot.texto(
+                f"💶 Llevas ${V.gasto.hoy():.2f} de ${C.PRESUPUESTO_DIA:.2f} de presupuesto diario "
+                f"(PRESUPUESTO_DIA_USD). Al llegar al tope dejaré de consultar a Claude hasta mañana."),
+                espera=86400)
         log.info("Diagnóstico: %s", json.dumps(diag, ensure_ascii=False))
 
         hay_problema = diag.get("estado") != "ok" and diag.get("confianza", 0) >= C.CONFIANZA_MIN
@@ -231,6 +256,34 @@ class Vigia:
             self.ultimo_parte = time.time()
 
         self._correcciones(jpeg, e, diag)
+
+    def _aviso_presupuesto_agotado(self) -> None:
+        self._avisar_una_vez("presupuesto100:" + time.strftime("%Y-%m-%d"), lambda: self.bot.texto(
+            f"💶 <b>Presupuesto diario agotado</b> (${V.gasto.hoy():.2f} de ${C.PRESUPUESTO_DIA:.2f}). "
+            "Hasta mañana no consulto a Claude: sigo vigilando solo el estado de la máquina "
+            "(errores y fin de impresión). Puedes subir PRESUPUESTO_DIA_USD en el .env y reiniciar."),
+            espera=86400)
+
+    def _claude_ok(self) -> None:
+        if self.aviso_claude:
+            self.bot.texto("✅ Claude vuelve a responder. Sigo vigilando con normalidad.")
+        self.fallos_claude, self.aviso_claude = 0, False
+
+    def _limpiar_casos(self) -> None:
+        """Borra fotos de casos con más de DIAS_RETENCION días (casos.jsonl se conserva)."""
+        if C.DIAS_RETENCION <= 0:
+            return
+        limite = time.time() - C.DIAS_RETENCION * 86400
+        borradas = 0
+        for f in C.DIR_CASOS.glob("*.jpg"):
+            try:
+                if f.stat().st_mtime < limite:
+                    f.unlink()
+                    borradas += 1
+            except OSError:
+                pass
+        if borradas:
+            log.info("Limpieza: %s fotos de más de %s días borradas", borradas, C.DIAS_RETENCION)
 
     def _modo_alerta(self, motivo: str) -> None:
         """Sube la frecuencia durante ALERTA_MIN minutos para confirmar o descartar."""
@@ -350,6 +403,8 @@ class Vigia:
                     self.bot.texto("No hay ninguna impresión vigilada ahora mismo.")
             else:
                 self.bot.texto("No conozco esa orden. /ayuda")
+        except V.PresupuestoAgotado:
+            self.bot.texto("💶 Presupuesto diario agotado: hoy no puedo consultar a Claude.")
         except Exception as ex:  # noqa: BLE001
             log.exception("Comando %s", cmd)
             self.bot.texto(f"⚠️ Error con /{esc(cmd)}: {esc(ex)}")
@@ -401,6 +456,8 @@ class Vigia:
         try:
             jpeg, e = P.capturar(), P.estado()
             self.bot.foto(jpeg, esc(V.preguntar(jpeg, e, texto)))
+        except V.PresupuestoAgotado:
+            self.bot.texto("💶 Presupuesto diario agotado: hoy no puedo consultar a Claude.")
         except Exception as ex:  # noqa: BLE001
             self.bot.texto(f"⚠️ No pude mirar la impresión: {esc(ex)}")
 
@@ -421,14 +478,31 @@ class Vigia:
     def run(self) -> None:
         log.info("Vigía arrancado — %s · cada %ss (riesgo: %ss) · correcciones: %s",
                  P.NOMBRE, C.INTERVALO, C.INTERVALO_ALERTA, C.CORRECCION_MODO)
+        self._limpiar_casos()
         self.bot.escuchar()
         self.bot.texto("🤖 Vigía en marcha. /ayuda para ver lo que puedo hacer.")
         while True:
             try:
                 self.ciclo_vigilancia()
             except Exception as ex:  # noqa: BLE001 — el bucle no debe morir
-                log.warning("Error en el ciclo: %s", ex)
+                self._error_ciclo(ex)
             time.sleep(self.espera)
+
+    def _error_ciclo(self, ex: Exception) -> None:
+        """Registra el error sin inundar el log y avisa si Claude deja de responder."""
+        texto = f"{type(ex).__name__}: {ex}"[:200]
+        anterior, cuando = self.ultimo_error
+        if texto != anterior or time.time() - cuando > 600:
+            log.warning("Error en el ciclo: %s", texto)
+            self.ultimo_error = (texto, time.time())
+        else:
+            log.debug("Error repetido: %s", texto)
+        if isinstance(ex, anthropic.APIError):
+            self.fallos_claude += 1
+            if self.fallos_claude >= 3 and not self.aviso_claude:
+                self.bot.texto("⚠️ Claude no responde desde hace varios intentos "
+                               f"({esc(type(ex).__name__)}). Sigo reintentando; la impresión no se toca.")
+                self.aviso_claude = True
 
 
 def main() -> None:
