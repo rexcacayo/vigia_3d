@@ -11,6 +11,10 @@ diagnóstico llegaba cortado y el 🛑 salió 15 minutos tarde.
   diagnóstico no confirma, avisa igualmente (🛑 si el filtro habla de espagueti, despegue…).
 - No analiza mientras calienta en capa 0 (ahorro y menos falsas sospechas por cama sucia).
 - Aprendizaje nuevo: islas que se mueven en las primeras capas = despegue.
+- **Pausa primero, aviso después** (`AUTO_PAUSA=true` por defecto): ante un fallo grave
+  pausa, **comprueba en la máquina** que está pausada y avisa «he pausado, revísala» con
+  botón ▶️ Reanudar. Si no consigue pausarla, avisa «párala tú». Mientras siga pausada,
+  lo recuerda con foto cada `RECORDATORIO_PAUSA_MIN` (5).
 
 ## 0.6.0: robustez para uso público
 - **Tope de gasto diario** (`PRESUPUESTO_DIA_USD`): aviso al 80 %, corte al 100 %.

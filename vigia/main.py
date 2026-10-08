@@ -89,6 +89,7 @@ class Vigia:
         self.fallos_claude = 0
         self.aviso_claude = False
         self.sospechas_seguidas = 0
+        self.pausa_vigia: dict | None = None  # pausa hecha por el vigía, pendiente de revisar
         self.ultimo_error = ("", 0.0)
         self.trabajo: dict | None = None
         self.bot.on_comando = self.comando
@@ -185,8 +186,13 @@ class Vigia:
         with self.lock:
             self.estado = e
 
-        if e["pausada"] or not e["imprimiendo"]:
-            if not e["pausada"] and self.trabajo is not None:
+        if e["pausada"]:
+            self._recordar_pausa()
+            self.espera = C.INTERVALO_ALERTA if self.pausa_vigia else C.INTERVALO
+            return
+        self.pausa_vigia = None  # reanudada (desde Telegram o desde la pantalla) o terminada
+        if not e["imprimiendo"]:
+            if self.trabajo is not None:
                 self._fin_trabajo(e)
             self.espera = C.INTERVALO
             return
@@ -353,18 +359,56 @@ class Vigia:
             botones = ([[("⏸️ Pausar ahora", "pausa:si")]] if "pausar" in P.CAPACIDADES else []) \
                 + self._botones_feedback(cid)
             if C.AUTO_PAUSA and "pausar" in P.CAPACIDADES:
-                try:
-                    P.pausar()
-                    cab += "\n⏸️ <b>La he pausado automáticamente.</b> /reanudar para seguir."
-                    botones = self._botones_feedback(cid)
-                except Exception as ex:  # noqa: BLE001
-                    cab += f"\n⚠️ No pude pausarla: {esc(ex)}"
+                if self._pausar_y_verificar(d):
+                    cab = ("⏸️ <b>HE PAUSADO LA IMPRESIÓN: revísala</b>\n"
+                           "Si era una falsa alarma, pulsa ▶️ Reanudar.")
+                    botones = [[("▶️ Reanudar", "rea:si")]] + self._botones_feedback(cid)
+                else:
+                    cab = ("🛑 <b>NO HE PODIDO PAUSARLA: PÁRALA TÚ</b>\n"
+                           "La impresión sigue en marcha.")
             espera = C.COOLDOWN // 3
         else:
             cab = f"{_icono(d)} <b>Aviso</b>"
             botones, espera = self._botones_feedback(cid), C.COOLDOWN
         self._avisar_una_vez(clave, lambda: self.bot.foto(
             jpeg, f"{cab}\n{self._texto_diag(d)}\n\n{self._texto_estado(e)}", botones), espera)
+
+    def _pausar_y_verificar(self, d: dict) -> bool:
+        """Pausa y comprueba en la máquina que de verdad se ha pausado."""
+        try:
+            P.pausar()
+            for _ in range(C.PAUSA_VERIFICAR_S):
+                time.sleep(1)
+                if P.estado().get("pausada"):
+                    log.warning("⏸️ Pausa automática confirmada (%s)", d.get("tipo"))
+                    self.pausa_vigia = {"desde": time.time(), "ultimo": time.time(),
+                                        "motivo": d.get("explicacion") or d.get("tipo") or "fallo"}
+                    if self.trabajo:
+                        self.trabajo["correcciones"].append({"cambio": "pausa", "motivo": d.get("tipo"),
+                                                             "modo": "auto"})
+                    return True
+            log.error("Pausa enviada pero la máquina no aparece pausada")
+        except Exception as ex:  # noqa: BLE001
+            log.error("No pude pausar: %s", ex)
+        return False
+
+    def _recordar_pausa(self) -> None:
+        """Mientras siga pausada por el vigía, lo recuerda cada RECORDATORIO_PAUSA_MIN."""
+        pv = self.pausa_vigia
+        if not pv or C.RECORDATORIO_PAUSA_MIN <= 0:
+            return
+        if time.time() - pv["ultimo"] < C.RECORDATORIO_PAUSA_MIN * 60:
+            return
+        pv["ultimo"] = time.time()
+        minutos = int((time.time() - pv["desde"]) / 60)
+        texto = (f"⏸️ <b>Sigue pausada desde hace {minutos} min</b>, esperando que la revises.\n"
+                 f"Motivo: {esc(str(pv['motivo'])[:300])}\n\n"
+                 "▶️ Reanudar si está bien, o cancélala en la impresora.")
+        botones = [[("▶️ Reanudar", "rea:si")]]
+        try:
+            self.bot.foto(P.capturar(), texto, botones)
+        except Exception:  # noqa: BLE001 — sin foto también vale
+            self.bot.texto(texto, botones)
 
     def _correcciones(self, jpeg: bytes, e: dict, d: dict) -> None:
         with self.lock:
@@ -429,6 +473,7 @@ class Vigia:
                 self.bot.texto("¿Pauso la impresión?", [[("⏸️ Sí, pausar", "pausa:si"), ("Cancelar", "pausa:no")]])
             elif cmd in ("reanudar", "continuar"):
                 P.reanudar()
+                self.pausa_vigia = None
                 self.bot.texto("▶️ Reanudada.")
             elif cmd == "modo":
                 if arg in ("off", "proponer", "auto"):
@@ -461,6 +506,10 @@ class Vigia:
                     self.bot.quitar_botones(mensaje, "⏸️ Impresión pausada. /reanudar para seguir.")
                 else:
                     self.bot.quitar_botones(mensaje, "Vale, no la pauso.")
+            elif clave == "rea":
+                P.reanudar()
+                self.pausa_vigia = None
+                self.bot.quitar_botones(mensaje, "▶️ Reanudada. Sigo vigilando.")
             elif clave in ("apl", "ign"):
                 with self.lock:
                     prop = self.motor.pendientes.pop(valor, None)

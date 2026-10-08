@@ -72,7 +72,10 @@ ZOOM_REGION = tuple(float(v) for v in os.getenv("ZOOM_REGION", "0.15,0.2,0.85,0.
 FILTRO_CON_ZOOM = _bool("FILTRO_CON_ZOOM", "true")  # false = filtro ~45 % más barato
 DIAG_CADA_MIN = float(os.getenv("DIAG_CADA_MIN", "10"))  # diagnóstico experto periódico
 INFORME_CADA_MIN = float(os.getenv("INFORME_CADA_MIN", "0"))
-AUTO_PAUSA = _bool("AUTO_PAUSA")
+# Ante un "detener": pausa, comprueba que la máquina está pausada y avisa para revisarla.
+AUTO_PAUSA = _bool("AUTO_PAUSA", "true")
+PAUSA_VERIFICAR_S = int(os.getenv("PAUSA_VERIFICAR_S", "15"))
+RECORDATORIO_PAUSA_MIN = float(os.getenv("RECORDATORIO_PAUSA_MIN", "5"))
 # Red de seguridad: si el filtro sospecha N fotos seguidas y el diagnóstico no confirma
 # (falla o no responde), se avisa igualmente.
 SOSPECHAS_ALARMA = int(os.getenv("SOSPECHAS_ALARMA", "3"))

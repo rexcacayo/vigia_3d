@@ -40,7 +40,11 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 | `FALLOS_CAMARA_AVISO` | `3` | Avisar tras N fallos seguidos de cámara |
 | `ZOOM_REGION` | `0.15,0.2,0.85,0.9` | Zona de la foto (fracciones x0,y0,x1,y1) que se amplía |
 | `FILTRO_CON_ZOOM` | `true` | El filtro mira también la ampliación (más preciso, ~2× su coste) |
-| `AUTO_PAUSA` | `false` | Pausar sola ante un "detener" (si no, te da el botón) |
+| `AUTO_PAUSA` | `true` | Ante un "detener": pausa, comprueba que la máquina está pausada y avisa para que la revises (con `false` solo te da el botón) |
+| `RECORDATORIO_PAUSA_MIN` | `5` | Mientras siga pausada por el vigía, recuerda cada N min con foto (0 = no recordar) |
+| `PAUSA_VERIFICAR_S` | `15` | Segundos que espera a ver la máquina pausada; si no, avisa «no he podido pausarla» |
+| `SOSPECHAS_ALARMA` | `3` | Sospechas seguidas del filtro sin diagnóstico que confirme → aviso de respaldo |
+| `MAX_TOKENS_DIAG` | `2000` | Margen de respuesta del diagnóstico (si llega cortado, reintenta con el doble) |
 
 ## Gasto y limpieza
 | Variable | Por defecto | Qué es |

@@ -20,7 +20,7 @@ os.environ.update({
     "TELEGRAM_CHAT_ID": "42", "DIR_CASOS": str(TMP), "CORRECCION_ESPERA_S": "0",
     "INFORME_CADA_MIN": "0", "INTERVALO_S": "90", "INTERVALO_ALERTA_S": "30",
     "CAPAS_RIESGO": "5", "CORRECCION_MODO": "proponer", "PRESUPUESTO_DIA_USD": "2",
-    "DIAS_RETENCION": "30",
+    "DIAS_RETENCION": "30", "AUTO_PAUSA": "false", "RECORDATORIO_PAUSA_MIN": "5",
 })
 
 from PIL import Image  # noqa: E402
@@ -54,6 +54,8 @@ def _control(cmd, args):
     CONTROLES.append((cmd, args))
     if "speed" in args:
         DET["printSpeedAdjust"] = args["speed"]
+    if cmd == "jobCtl_cmd":
+        DET["status"] = {"pause": "paused", "continue": "printing"}.get(args.get("action"), DET["status"])
 
 
 P.detalle = lambda: dict(DET)
@@ -119,6 +121,7 @@ def main() -> None:
     comprobar(any("DETENER" in e[1] for e in ENVIADOS), "aviso 🛑 de detener")
     v.boton("pausa:si", MSG)
     comprobar(CONTROLES[-1][0] == "jobCtl_cmd", "⏸️ Pausar ahora pausa la impresión")
+    DET["status"] = "printing"
 
     cid = v.trabajo["casos"][-1]["id"]
     v.boton(f"fb-:{cid}", MSG)
@@ -151,6 +154,22 @@ def main() -> None:
         ciclo(ESPAGUETI, CORTADO, "")
     comprobar(any("DETENER" in e[1] and "No he podido confirmarlo" in e[1] for e in ENVIADOS[n:]),
               f"{C.SOSPECHAS_ALARMA} sospechas sin diagnóstico → 🛑 de respaldo")
+    DET["status"] = "printing"
+
+    print("Pausa automática:")
+    C.AUTO_PAUSA = True
+    v.sospechas_seguidas, n = 0, len(ENVIADOS)
+    ciclo(SOSPECHA, dict(STOP, tipo="despegue_cama"))
+    comprobar(DET["status"] == "paused" and v.pausa_vigia, "ante un 🛑 pausa y comprueba que está pausada")
+    comprobar(any("HE PAUSADO" in e[1] for e in ENVIADOS[n:]), "y avisa: «he pausado, revísala»")
+    v.pausa_vigia["ultimo"] -= C.RECORDATORIO_PAUSA_MIN * 60 + 1
+    n = len(ENVIADOS)
+    v.ciclo_vigilancia()
+    comprobar(any("Sigue pausada" in e[1] for e in ENVIADOS[n:]), "recuerda que sigue pausada")
+    v.boton("rea:si", MSG)
+    comprobar(DET["status"] == "printing" and v.pausa_vigia is None, "▶️ Reanudar la reanuda")
+    C.AUTO_PAUSA = False
+
     DET.update(printLayer=0, rightTemp=140)
     RESPUESTAS.clear()
     v.ciclo_vigilancia()
