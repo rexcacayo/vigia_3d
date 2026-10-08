@@ -78,6 +78,8 @@ PAUSA_VERIFICAR_S = int(os.getenv("PAUSA_VERIFICAR_S", "15"))
 RECORDATORIO_PAUSA_MIN = float(os.getenv("RECORDATORIO_PAUSA_MIN", "5"))
 # Red de seguridad: si el filtro sospecha N fotos seguidas y el diagnóstico no confirma
 # (falla o no responde), se avisa igualmente.
+# Tras un diagnóstico sin fallo, segundos mínimos antes de volver a consultar por una sospecha.
+DIAG_ENTRE_SOSPECHAS_S = int(os.getenv("DIAG_ENTRE_SOSPECHAS_S", "120"))
 SOSPECHAS_ALARMA = int(os.getenv("SOSPECHAS_ALARMA", "3"))
 
 # Correcciones: off | proponer | auto

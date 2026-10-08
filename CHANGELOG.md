@@ -11,6 +11,9 @@ diagnóstico llegaba cortado y el 🛑 salió 15 minutos tarde.
   diagnóstico no confirma, avisa igualmente (🛑 si el filtro habla de espagueti, despegue…).
 - No analiza mientras calienta en capa 0 (ahorro y menos falsas sospechas por cama sucia).
 - Aprendizaje nuevo: islas que se mueven en las primeras capas = despegue.
+- **Ahorro**: si el diagnóstico acaba de decir que no hay fallo, las sospechas del filtro
+  no lo vuelven a consultar hasta pasados `DIAG_ENTRE_SOSPECHAS_S` (120). En la prueba
+  real el filtro marcó sospecha en 269 fotos de una pieza sana y agotó los $2 del día.
 - **Pausa primero, aviso después** (`AUTO_PAUSA=true` por defecto): ante un fallo grave
   pausa, **comprueba en la máquina** que está pausada y avisa «he pausado, revísala» con
   botón ▶️ Reanudar. Si no consigue pausarla, avisa «párala tú». Mientras siga pausada,

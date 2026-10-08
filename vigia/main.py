@@ -250,7 +250,16 @@ class Vigia:
         else:
             self.sospechas_seguidas = 0
         toca_diag = time.time() - self.ultimo_diag_ts >= C.DIAG_CADA_MIN * 60
-        profundo = filtro.get("estado") != "ok" or toca_diag or toca_parte
+        sospecha = filtro.get("estado") != "ok"
+        # Si el experto ya miró hace poco y no vio nada grave, no lo consultamos en cada foto
+        # que el filtro marque: el filtro es desconfiado y eso se come el presupuesto.
+        ultimo = self.ultimo_diag or {}
+        reciente = time.time() - self.ultimo_diag_ts < C.DIAG_ENTRE_SOSPECHAS_S
+        if sospecha and reciente and ultimo.get("estado") != "fallo" and not toca_parte:
+            log.info("Sospecha del filtro; el diagnóstico de hace %ss decía %s/%s: espero",
+                     int(time.time() - self.ultimo_diag_ts), ultimo.get("estado"), ultimo.get("gravedad"))
+            sospecha = False
+        profundo = sospecha or toca_diag or toca_parte
         self._calcular_espera(e)
         if not profundo:
             return

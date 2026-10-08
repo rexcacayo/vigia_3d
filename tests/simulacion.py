@@ -20,7 +20,7 @@ os.environ.update({
     "TELEGRAM_CHAT_ID": "42", "DIR_CASOS": str(TMP), "CORRECCION_ESPERA_S": "0",
     "INFORME_CADA_MIN": "0", "INTERVALO_S": "90", "INTERVALO_ALERTA_S": "30",
     "CAPAS_RIESGO": "5", "CORRECCION_MODO": "proponer", "PRESUPUESTO_DIA_USD": "2",
-    "DIAS_RETENCION": "30", "AUTO_PAUSA": "false", "RECORDATORIO_PAUSA_MIN": "5",
+    "DIAS_RETENCION": "30", "AUTO_PAUSA": "false", "DIAG_ENTRE_SOSPECHAS_S": "0", "RECORDATORIO_PAUSA_MIN": "5",
 })
 
 from PIL import Image  # noqa: E402
@@ -175,6 +175,19 @@ def main() -> None:
     v.ciclo_vigilancia()
     comprobar(not RESPUESTAS and v.espera == 30, "calentando en capa 0 → no gasta en Claude")
     DET.update(printLayer=240, rightTemp=250)
+
+    print("Ahorro con un filtro desconfiado (caso real, 8-oct):")
+    C.DIAG_ENTRE_SOSPECHAS_S = 120
+    VIGILAR = dict(OK, estado="sospecha", gravedad="vigilar", confianza=0.45)
+    ciclo(SOSPECHA, VIGILAR)
+    RESPUESTAS.clear()
+    for _ in range(3):
+        ciclo(SOSPECHA)  # solo el filtro: si pidiera diagnóstico, faltaría respuesta
+    comprobar(not RESPUESTAS, "tras un «vigilar» reciente no repite el diagnóstico en cada foto")
+    v.ultimo_diag_ts -= 121
+    ciclo(SOSPECHA, OK)
+    comprobar(not RESPUESTAS, "pasados 2 min vuelve a consultar")
+    C.DIAG_ENTRE_SOSPECHAS_S = 0
 
     print("Robustez:")
     # candado de cámara: dos capturas simultáneas nunca se solapan
