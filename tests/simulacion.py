@@ -140,6 +140,23 @@ def main() -> None:
     comprobar(v.espera == 30, "primeras capas → cada 30 s")
     DET["printLayer"] = 240
 
+    print("Diagnóstico que falla (caso real Pikachu, 8-oct):")
+    CORTADO = '{\n  "estado": "fallo",\n  "grav'
+    ESPAGUETI = {"estado": "sospecha", "motivo": "Nido de espagueti: material enredado en la cama."}
+    ciclo(SOSPECHA, CORTADO, STOP)
+    comprobar(v.ultimo_diag.get("tipo") == "espagueti", "respuesta cortada → reintenta y diagnostica")
+    v.sospechas_seguidas = 0
+    n = len(ENVIADOS)
+    for _ in range(C.SOSPECHAS_ALARMA):
+        ciclo(ESPAGUETI, CORTADO, "")
+    comprobar(any("DETENER" in e[1] and "No he podido confirmarlo" in e[1] for e in ENVIADOS[n:]),
+              f"{C.SOSPECHAS_ALARMA} sospechas sin diagnóstico → 🛑 de respaldo")
+    DET.update(printLayer=0, rightTemp=140)
+    RESPUESTAS.clear()
+    v.ciclo_vigilancia()
+    comprobar(not RESPUESTAS and v.espera == 30, "calentando en capa 0 → no gasta en Claude")
+    DET.update(printLayer=240, rightTemp=250)
+
     print("Robustez:")
     # candado de cámara: dos capturas simultáneas nunca se solapan
     import threading

@@ -2,6 +2,16 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.6.1: el aviso ya no se pierde
+Caso real (Pikachu, PETG, 8-oct): el filtro vio espagueti desde la capa 3, pero el
+diagnóstico llegaba cortado y el 🛑 salió 15 minutos tarde.
+- Diagnóstico con más margen (`MAX_TOKENS_DIAG=2000`) y **reintento** si la respuesta
+  llega cortada o mal formada; el log indica el `stop_reason`.
+- **Aviso de respaldo**: si el filtro sospecha `SOSPECHAS_ALARMA` fotos seguidas (3) y el
+  diagnóstico no confirma, avisa igualmente (🛑 si el filtro habla de espagueti, despegue…).
+- No analiza mientras calienta en capa 0 (ahorro y menos falsas sospechas por cama sucia).
+- Aprendizaje nuevo: islas que se mueven en las primeras capas = despegue.
+
 ## 0.6.0: robustez para uso público
 - **Tope de gasto diario** (`PRESUPUESTO_DIA_USD`): aviso al 80 %, corte al 100 %.
 - **Candado de cámara**: el bucle y Telegram nunca piden foto a la vez.

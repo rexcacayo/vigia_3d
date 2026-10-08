@@ -54,6 +54,20 @@ def _icono(diag: dict) -> str:
     return {"ok": "🟢", "vigilar": "🟡", "detener": "🛑"}.get(diag.get("gravedad"), "⚪")
 
 
+# Palabras del filtro que bastan para pedir detener si el diagnóstico no responde.
+PALABRAS_GRAVES = ("espagueti", "despegad", "colgando", "desplazad", "movida", "suelt", "enred")
+
+
+def _calentando(e: dict) -> bool:
+    """Capa 0 y la boquilla aún lejos de su temperatura: no hay nada impreso que analizar."""
+    capa = (e.get("capa") or {}).get("actual") or 0
+    b = e.get("boquilla") or {}
+    try:
+        return capa == 0 and float(b.get("actual") or 0) < float(b.get("objetivo") or 0) - 10
+    except (TypeError, ValueError):
+        return False
+
+
 class Vigia:
     def __init__(self) -> None:
         self.bot = Bot()
@@ -74,6 +88,7 @@ class Vigia:
         self.esperando_comentario: str | None = None
         self.fallos_claude = 0
         self.aviso_claude = False
+        self.sospechas_seguidas = 0
         self.ultimo_error = ("", 0.0)
         self.trabajo: dict | None = None
         self.bot.on_comando = self.comando
@@ -96,6 +111,7 @@ class Vigia:
         self.ultimo_parte = 0.0
         self.fallos_camara = 0
         self.aviso_camara = False
+        self.sospechas_seguidas = 0
 
     def _guardar_caso(self, jpeg: bytes, e: dict, diag: dict, clase: str) -> str:
         cid = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -205,6 +221,10 @@ class Vigia:
             self.ultimo_jpeg = jpeg
         self.ciclo += 1
 
+        if _calentando(e):
+            log.info("Calentando (capa 0): aún no analizo")
+            self.espera = C.INTERVALO_ALERTA
+            return
         if V.gasto.agotado():
             self._aviso_presupuesto_agotado()
             return
@@ -219,7 +239,10 @@ class Vigia:
 
         toca_parte = C.INFORME_CADA_MIN > 0 and time.time() - self.ultimo_parte >= C.INFORME_CADA_MIN * 60
         if filtro.get("estado") != "ok":
+            self.sospechas_seguidas += 1
             self._modo_alerta("el filtro sospecha")
+        else:
+            self.sospechas_seguidas = 0
         toca_diag = time.time() - self.ultimo_diag_ts >= C.DIAG_CADA_MIN * 60
         profundo = filtro.get("estado") != "ok" or toca_diag or toca_parte
         self._calcular_espera(e)
@@ -233,6 +256,12 @@ class Vigia:
         except V.PresupuestoAgotado:
             self._aviso_presupuesto_agotado()
             return
+        except Exception as ex:  # noqa: BLE001
+            # El diagnóstico falló: no se puede quedar callado si el filtro lleva rato viendo algo.
+            self._error_ciclo(ex)
+            if self.sospechas_seguidas < C.SOSPECHAS_ALARMA:
+                return
+            diag = self._diag_de_respaldo(filtro)
         self.ultimo_diag = diag
         if V.gasto.fraccion() >= 0.8:
             self._avisar_una_vez("presupuesto80:" + time.strftime("%Y-%m-%d"), lambda: self.bot.texto(
@@ -256,6 +285,20 @@ class Vigia:
             self.ultimo_parte = time.time()
 
         self._correcciones(jpeg, e, diag)
+
+    def _diag_de_respaldo(self, filtro: dict) -> dict:
+        """Diagnóstico mínimo construido con lo que ve el filtro, cuando el experto no responde."""
+        motivo = filtro.get("motivo") or "algo raro en la cámara"
+        grave = any(p in motivo.lower() for p in PALABRAS_GRAVES)
+        log.warning("Aviso de respaldo tras %s sospechas seguidas: %s", self.sospechas_seguidas, motivo)
+        return {
+            "estado": "fallo" if grave else "sospecha",
+            "gravedad": "detener" if grave else "vigilar",
+            "tipo": "sin_confirmar", "zona": None, "confianza": 1.0, "parametro": None,
+            "accion": {"tipo": "ninguna", "delta": None, "motivo": "aviso de respaldo"},
+            "explicacion": (f"El filtro lleva {self.sospechas_seguidas} fotos seguidas viendo: {motivo} "
+                            "No he podido confirmarlo con el diagnóstico completo: míralo tú."),
+        }
 
     def _aviso_presupuesto_agotado(self) -> None:
         self._avisar_una_vez("presupuesto100:" + time.strftime("%Y-%m-%d"), lambda: self.bot.texto(

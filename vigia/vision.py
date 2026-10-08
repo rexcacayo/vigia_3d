@@ -124,7 +124,9 @@ Responde SOLO con JSON: {"estado": "ok" | "sospecha", "motivo": "<qué ves, 1 fr
 
 FORMATO_DIAG = """
 ## Formato de respuesta
-Responde SOLO con un JSON válido, sin texto adicional:
+Responde SOLO con un JSON válido, sin texto antes ni después y sin bloque ```.
+Dentro de los textos no uses comillas dobles (usa «» o comillas simples).
+Lo primero que importa es "gravedad": decídela y escríbela antes de extenderte.
 {
   "estado": "ok" | "sospecha" | "fallo",
   "gravedad": "ok" | "vigilar" | "detener",
@@ -169,11 +171,19 @@ def ampliar(jpeg: bytes) -> bytes:
     return out.getvalue()
 
 
-def _json(texto: str) -> dict:
+class RespuestaInvalida(ValueError):
+    """Claude respondió, pero no con un JSON utilizable (cortado, vacío o mal formado)."""
+
+
+def _json(texto: str, motivo_corte: str | None = None) -> dict:
     m = re.search(r"\{.*\}", texto, re.S)
-    if not m:
-        raise ValueError(f"Respuesta sin JSON: {texto[:200]}")
-    return json.loads(m.group(0))
+    try:
+        if not m:
+            raise ValueError("sin JSON")
+        return json.loads(m.group(0))
+    except ValueError as ex:
+        raise RespuestaInvalida(f"{ex} (stop_reason={motivo_corte}, {len(texto)} car.): "
+                                f"{texto[:120]!r}") from None
 
 
 def _resumen_estado(estado: dict) -> str:
@@ -188,7 +198,8 @@ def filtrar(jpeg: bytes) -> dict:
         model=C.MODELO_FILTRO, max_tokens=150, system=FILTRO,
         messages=[{"role": "user", "content": [_bloque(jpeg)] + ([_bloque(ampliar(jpeg))] if C.FILTRO_CON_ZOOM else [])}],
     )
-    return _json("".join(b.text for b in resp.content if b.type == "text"))
+    return _json("".join(b.text for b in resp.content if b.type == "text"),
+                 getattr(resp, "stop_reason", None))
 
 
 def diagnosticar(imagenes: list[bytes], estado: dict) -> dict:
@@ -199,13 +210,19 @@ def diagnosticar(imagenes: list[bytes], estado: dict) -> dict:
     contenido.append({"type": "text", "text": "Ampliación de la zona de la pieza del fotograma más reciente:"})
     contenido.append(_bloque(ampliar(imagenes[-1])))
     contenido.append({"type": "text", "text": f"Estado de la máquina: {_resumen_estado(estado)}"})
-    resp = _crear(
-        model=C.MODELO_DIAG, max_tokens=700,
-        system=[{"type": "text", "text": sistema_diagnostico(),
-                 "cache_control": {"type": "ephemeral"}}],
-        messages=[{"role": "user", "content": contenido}],
-    )
-    d = _json("".join(b.text for b in resp.content if b.type == "text"))
+    sistema = [{"type": "text", "text": sistema_diagnostico(), "cache_control": {"type": "ephemeral"}}]
+    # Si la respuesta llega cortada (max_tokens) o mal formada, se reintenta una vez con más margen.
+    for intento, max_tokens in enumerate((C.MAX_TOKENS_DIAG, C.MAX_TOKENS_DIAG * 2)):
+        resp = _crear(model=C.MODELO_DIAG, max_tokens=max_tokens, system=sistema,
+                      messages=[{"role": "user", "content": contenido}])
+        texto = "".join(b.text for b in resp.content if b.type == "text")
+        try:
+            d = _json(texto, getattr(resp, "stop_reason", None))
+            break
+        except RespuestaInvalida as ex:
+            if intento:
+                raise
+            log.warning("Diagnóstico inválido, reintento con más tokens: %s", ex)
     acc = d.get("accion") or {}
     if acc.get("tipo") not in TIPOS_ACCION:
         d["accion"] = {"tipo": "ninguna", "delta": None, "motivo": "acción no reconocida"}

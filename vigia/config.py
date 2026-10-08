@@ -31,6 +31,8 @@ PRINTER_IP = os.getenv("PRINTER_IP", "")
 ANTHROPIC_WORKSPACE_ID = os.getenv("ANTHROPIC_WORKSPACE_ID", "").strip()
 MODELO_FILTRO = os.getenv("MODELO_FILTRO", "claude-haiku-4-5-20251001")
 MODELO_DIAG = os.getenv("MODELO_DIAGNOSTICO", "claude-sonnet-5-5")
+# Margen de salida del diagnóstico. Si se queda corto, la respuesta llega cortada y se reintenta.
+MAX_TOKENS_DIAG = int(os.getenv("MAX_TOKENS_DIAG", "2000"))
 
 # Precios en USD por millón de tokens: entrada, salida, escritura de caché, lectura de caché.
 # Revisa https://claude.com/pricing: si cambian, ajústalos en el .env (PRECIO_<MODELO>=a,b,c,d).
@@ -71,6 +73,9 @@ FILTRO_CON_ZOOM = _bool("FILTRO_CON_ZOOM", "true")  # false = filtro ~45 % más 
 DIAG_CADA_MIN = float(os.getenv("DIAG_CADA_MIN", "10"))  # diagnóstico experto periódico
 INFORME_CADA_MIN = float(os.getenv("INFORME_CADA_MIN", "0"))
 AUTO_PAUSA = _bool("AUTO_PAUSA")
+# Red de seguridad: si el filtro sospecha N fotos seguidas y el diagnóstico no confirma
+# (falla o no responde), se avisa igualmente.
+SOSPECHAS_ALARMA = int(os.getenv("SOSPECHAS_ALARMA", "3"))
 
 # Correcciones: off | proponer | auto
 CORRECCION_MODO = os.getenv("CORRECCION_MODO", "proponer").strip().lower()
