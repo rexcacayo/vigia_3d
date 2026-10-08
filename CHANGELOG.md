@@ -1,5 +1,7 @@
 # Historial de cambios
 
+Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
+
 ## 0.6.0: robustez para uso público
 - **Tope de gasto diario** (`PRESUPUESTO_DIA_USD`): aviso al 80 %, corte al 100 %.
 - **Candado de cámara**: el bucle y Telegram nunca piden foto a la vez.

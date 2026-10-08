@@ -43,7 +43,9 @@ vigia_3d/
     ├── MODIFICAR.md           ← recetas para cambiar cada parte
     ├── ADAPTADORES.md         ← cómo soportar otra impresora
     ├── COMPATIBILIDAD.md      ← impresoras y comandos de cada API
-    └── COSTES.md              ← cuánto cuesta por hora de impresión
+    ├── COSTES.md              ← cuánto cuesta por hora de impresión
+    ├── PRUEBA_REAL.md         ← checklist de validación con hardware
+    └── ROADMAP.md             ← pendiente de verificar, mejoras y nuevos alcances
 ```
 
 ## Qué hace cada módulo
