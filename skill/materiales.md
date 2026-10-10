@@ -12,6 +12,12 @@
   se acumulen en bolas o se enganchen a la pieza.
 - Vigilar: pegotes en la boquilla que se depositan sobre la pieza, mala adhesión
   entre capas si se enfría demasiado, cama demasiado pegajosa.
+- Muy higroscópico: hilos abundantes, burbujas o chasquidos suelen ser **humedad**
+  (secar 65 °C varias horas) antes que un problema de perfil. Dilo en el diagnóstico.
+- Primeras capas: necesita cama limpia (sin grasa ni restos); si las islas se mueven
+  entre fotogramas es despegue, no restos de purga.
+- Las paredes brillantes de PETG pueden parecer onduladas en la foto: solo es
+  deformación si cambia entre fotogramas.
 
 ## ASA / ABS
 - Boquilla 240–260 °C, cama 90–110 °C, ventilador bajo (0–30 %), cámara cerrada.

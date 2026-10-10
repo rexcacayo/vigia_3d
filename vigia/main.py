@@ -10,6 +10,7 @@ import anthropic
 
 from . import config as C
 from .maquina import P
+from . import filamentos as F
 from . import vision as V
 from .correcciones import Motor
 from .telegram import Bot, esc
@@ -29,6 +30,7 @@ AYUDA = (
     "/modo off|proponer|auto – correcciones\n"
     "/informe – informe con recomendaciones de perfil\n"
     "/coste – lo que lleva gastado en Claude esta impresión\n"
+    "/filamento [nombre] – ver o elegir el filamento cargado\n"
     "También puedes escribirme cualquier pregunta sobre la impresión."
 )
 
@@ -99,6 +101,7 @@ class Vigia:
     # ================================================================ registro
     def _nuevo_trabajo(self, e: dict) -> None:
         self.trabajo = {"fichero": e.get("fichero"), "material": e.get("material"),
+                        "filamento": F.actual(),
                         "inicio": datetime.now().isoformat(timespec="seconds"),
                         "capas_total": (e.get("capa") or {}).get("total"),
                         "casos": [], "correcciones": [], "feedback": []}
@@ -199,7 +202,10 @@ class Vigia:
 
         if self.trabajo is None or self.trabajo["fichero"] != e.get("fichero"):
             self._nuevo_trabajo(e)
-            self.bot.texto(f"👀 Empiezo a vigilar\n{self._texto_estado(e)}\n\n/ayuda para ver órdenes")
+            fil = self.trabajo.get("filamento")
+            aviso_fil = (f"🧵 Filamento: <b>{esc(fil)}</b> (¿es otro? /filamento)" if fil
+                         else "🧵 ¿Qué filamento es? Dímelo con /filamento para afinar el diagnóstico")
+            self.bot.texto(f"👀 Empiezo a vigilar\n{self._texto_estado(e)}\n{aviso_fil}\n\n/ayuda para ver órdenes")
             if "luz" in P.CAPACIDADES:
                 try:
                     P.encender_luz()
@@ -460,6 +466,12 @@ class Vigia:
                                       f"```json\n{json.dumps(t, ensure_ascii=False, indent=2)}\n```\n",
                                       encoding="utf-8")
         self.bot.texto(f"📝 <b>Informe</b>\n\n{md_a_telegram(texto)}\n\n{self._texto_coste()}")
+        fid = t.get("filamento")
+        if fid:
+            cab = f"{(t.get('fichero') or '').split('.')[0]} ({t.get('duracion')}, {t.get('estado_final')})"
+            n = F.anotar(fid, cab, F.extraer_lecciones(texto))
+            if n:
+                self.bot.texto(f"🧵 Añadido a la ficha <b>{esc(fid)}</b>: {n} lección(es).")
 
     # ================================================================ Telegram
     def comando(self, cmd: str, arg: str) -> None:
@@ -490,6 +502,8 @@ class Vigia:
                     self.bot.texto(f"Modo de correcciones: <b>{arg}</b>")
                 else:
                     self.bot.texto(f"Modo actual: <b>{C.CORRECCION_MODO}</b>. Usa /modo off|proponer|auto")
+            elif cmd == "filamento":
+                self._cmd_filamento(arg)
             elif cmd == "coste":
                 self.bot.texto(self._texto_coste())
             elif cmd == "informe":
@@ -562,10 +576,31 @@ class Vigia:
         except Exception as ex:  # noqa: BLE001
             self.bot.texto(f"⚠️ No pude mirar la impresión: {esc(ex)}")
 
+    def _cmd_filamento(self, arg: str) -> None:
+        arg = (arg or "").strip()
+        if not arg:
+            act = F.actual()
+            fichas = "\n".join(f"• {f}" for f in F.lista()) or "(ninguna)"
+            self.bot.texto(f"🧵 Filamento cargado: <b>{esc(act or 'sin indicar')}</b>\n\nFichas:\n{fichas}\n\n"
+                           "/filamento &lt;nombre&gt; para elegir · /filamento nuevo &lt;marca tipo&gt; para crear")
+            return
+        if arg.lower().startswith("nuevo "):
+            fid = F.crear(arg[6:])
+            self.bot.texto(f"🧵 Ficha nueva <b>{esc(fid)}</b> creada y cargada. Se irá completando con cada impresión.")
+            return
+        fid = F.fijar(arg)
+        if fid:
+            self.bot.texto(f"🧵 Cargado: <b>{esc(fid)}</b>. Lo tendré en cuenta en los diagnósticos.")
+            if self.trabajo is not None:
+                self.trabajo["filamento"] = fid
+        else:
+            self.bot.texto(f"No encuentro una ficha única para «{esc(arg)}». /filamento para ver la lista.")
+
     def _aprender(self, cid: str, comentario: str) -> None:
         caso = self._caso(cid) or {}
         d, e = caso.get("diagnostico") or {}, caso.get("estado") or {}
-        linea = (f"- {datetime.now():%Y-%m-%d} · {e.get('material') or '?'} · capa "
+        fil = (self.trabajo or {}).get("filamento")
+        linea = (f"- {datetime.now():%Y-%m-%d} · {fil or e.get('material') or '?'} · capa "
                  f"{(e.get('capa') or {}).get('actual')} · {e.get('fichero') or ''}: "
                  f"el vigía dijo {d.get('estado')}/{d.get('gravedad')}/{d.get('tipo')} "
                  f"(«{(d.get('explicacion') or '')[:120]}»). Usuario: «{comentario}»\n")

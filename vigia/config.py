@@ -97,3 +97,6 @@ DIR_CASOS = Path(os.getenv("DIR_CASOS", str(RAIZ / "casos")))
 DIR_CASOS.mkdir(parents=True, exist_ok=True)
 DIR_SKILL = RAIZ / "skill"
 FICHERO_APRENDIZAJES = DIR_SKILL / "aprendizajes.md"
+# Fichas de filamento (marca + tipo). La activa se elige con /filamento o con FILAMENTO.
+DIR_FILAMENTOS = DIR_SKILL / "filamentos"
+FILAMENTO = os.getenv("FILAMENTO", "").strip()

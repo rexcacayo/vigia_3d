@@ -5,7 +5,7 @@ Usa una impresión corta y fiable (1–2 h, PLA) y anota el resultado de cada pu
 
 ## Preparación
 ```bash
-git pull                      # última versión
+git pull --autostash          # última versión sin perder lo aprendido
 bash instalar.sh              # añade al .env las opciones nuevas sin tocar las tuyas
 ./venv/bin/python -m tests.simulacion        # debe acabar en "TODO OK ✅"
 ./venv/bin/python -m vigia.probar --claude   # impresora, cámara y Claude

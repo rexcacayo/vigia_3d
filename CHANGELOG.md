@@ -2,6 +2,15 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.7.0: fichas de filamento que aprenden
+- **Fichas por marca y tipo** en `skill/filamentos/`, con datos del fabricante, perfil
+  validado, recomendaciones pendientes de probar, síntomas en cámara y correcciones.
+  Primera ficha: **ELEGOO Rapid PETG**.
+- `/filamento` en Telegram para ver, elegir o crear la ficha del filamento cargado; el
+  vigía lo pregunta al empezar cada impresión.
+- El diagnóstico usa la ficha, y el informe final **añade lo aprendido** a su historial.
+- `materiales.md`: PETG higroscópico (hilos = humedad), cama limpia, brillo ≠ deformación.
+
 ## 0.6.1: el aviso ya no se pierde
 Caso real (Pikachu, PETG, 8-oct): el filtro vio espagueti desde la capa 3, pero el
 diagnóstico llegaba cortado y el 🛑 salió 15 minutos tarde.

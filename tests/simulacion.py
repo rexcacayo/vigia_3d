@@ -35,6 +35,8 @@ from vigia.maquina import P  # noqa: E402
 APRENDIZAJES_REAL = C.FICHERO_APRENDIZAJES
 C.FICHERO_APRENDIZAJES = TMP / "aprendizajes.md"
 shutil.copy(APRENDIZAJES_REAL, C.FICHERO_APRENDIZAJES)
+# Igual con las fichas de filamento
+C.DIR_FILAMENTOS = Path(shutil.copytree(C.DIR_FILAMENTOS, TMP / "filamentos"))
 
 # ---------------------------------------------------------------- dobles de prueba
 _b = io.BytesIO()
@@ -238,9 +240,22 @@ def main() -> None:
     RESPUESTAS.clear()
     V.gasto.datos[V.gasto._hoy()] = 0
 
+    print("Ficha de filamento:")
+    from vigia import filamentos as F
+    v.comando("filamento", "elegoo rapid")
+    comprobar(F.actual() == "elegoo-petg-rapid" and v.trabajo["filamento"] == "elegoo-petg-rapid",
+              "/filamento elegoo rapid carga la ficha")
+    comprobar("ELEGOO Rapid PETG" in V.sistema_diagnostico(), "el diagnóstico lee la ficha")
+    v.comando("filamento", "nuevo Sunlu PLA Matte")
+    comprobar(F.actual() == "sunlu-pla-matte", "/filamento nuevo crea una ficha desde la plantilla")
+    v.comando("filamento", "elegoo-petg-rapid")
+
     DET["status"] = "completed"
-    RESPUESTAS.append("## Resumen\nTodo **bien**.")
+    RESPUESTAS.append("## Resumen\nTodo **bien**.\n\n## Para la ficha del filamento\n"
+                      "- 245 °C sin hilos con el filamento recién secado")
     v.ciclo_vigilancia()
+    comprobar("245 °C sin hilos" in (C.DIR_FILAMENTOS / "elegoo-petg-rapid.md").read_text(),
+              "el informe añade lo aprendido al historial de la ficha")
     comprobar(any(f.suffix == ".md" for f in (TMP / "informes").iterdir()), "informe final guardado")
     comprobar(any("Coste de vigilancia" in e[1] for e in ENVIADOS), "el informe incluye el coste")
 

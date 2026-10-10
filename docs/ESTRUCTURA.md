@@ -21,6 +21,7 @@ vigia_3d/
 │   ├── vision.py              ← llamadas a Claude: filtro, diagnóstico, preguntas, informe, coste
 │   ├── correcciones.py        ← reglas que validan/aplican/revierten correcciones
 │   ├── telegram.py            ← bot: envío con botones y escucha de órdenes
+│   ├── filamentos.py          ← fichas de filamento: activa, lectura, historial aprendido
 │   ├── probar.py              ← verificador de adaptadores (solo lectura)
 │   └── impresoras/            ← adaptadores (uno por familia de impresoras)
 │       ├── __init__.py        ← contrato: capacidades, claves de estado, validación
@@ -31,7 +32,10 @@ vigia_3d/
 │   ├── SKILL.md               ← rol, cómo razonar, gravedades
 │   ├── materiales.md          ← qué es normal y qué vigilar por material
 │   ├── correcciones.md        ← lista blanca de acciones y cuándo proponerlas
-│   └── aprendizajes.md        ← casos corregidos por el usuario (crece solo con 👎)
+│   ├── aprendizajes.md        ← casos corregidos por el usuario (crece solo con 👎)
+│   └── filamentos/            ← una ficha por marca+tipo (crece sola con cada informe)
+│       ├── _plantilla.md
+│       └── elegoo-petg-rapid.md
 │
 ├── tests/
 │   └── simulacion.py          ← impresión simulada de principio a fin (sin hardware)
@@ -57,7 +61,7 @@ vigia_3d/
 | `_nuevo_trabajo()` / `_fin_trabajo()` | Detecta inicio y fin de impresión; reinicia motor y contador; lanza el informe |
 | `_avisar_problema()` | Aviso 🟡 o 🛑 con foto y botones, con espera anti-spam (`COOLDOWN_AVISO_S`) |
 | `_correcciones()` | Pasa el diagnóstico al motor; propone con botones o aplica (modo auto); revierte |
-| `comando()` | Órdenes `/estado /foto /parte /pausa /reanudar /modo /coste /informe /ayuda` |
+| `comando()` | Órdenes `/estado /foto /parte /pausa /reanudar /modo /coste /filamento /informe /ayuda` |
 | `boton()` | Botones: pausar, aplicar/ignorar corrección, 👍/👎 |
 | `texto_libre()` | Comentario tras 👎 → aprendizaje; si no, pregunta libre a Claude con foto |
 | `_guardar_caso()` | Foto + línea en `casos.jsonl` |

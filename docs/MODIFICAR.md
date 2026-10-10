@@ -24,6 +24,7 @@ reiniciar para que un cambio cuente.
 | Ajustar lo que espera de un material o añadir uno | `skill/materiales.md` |
 | Cambiar cuándo propone cada corrección | `skill/correcciones.md` |
 | Enseñarle un caso concreto | `skill/aprendizajes.md` (o 👎 + comentario por Telegram) |
+| Lo que sé de un filamento concreto (marca + tipo) | `skill/filamentos/<id>.md` (ver abajo) |
 | Describir mejor la cámara de mi máquina | `DESCRIPCION` en `vigia/impresoras/<tipo>.py` |
 
 Consejos:
@@ -31,6 +32,22 @@ Consejos:
   en vez de genéricas ("ten cuidado").
 - Un aprendizaje por línea, con material y contexto. Si `aprendizajes.md` crece mucho,
   agrupa los casos parecidos en una regla y pásala a `SKILL.md` o `materiales.md`.
+
+### Fichas de filamento
+Cada marca/tipo tiene su ficha en `skill/filamentos/` (parte de `_plantilla.md`):
+datos del fabricante, **perfil validado en tu máquina**, recomendaciones sin validar,
+qué es normal en la cámara y qué corregir en marcha.
+
+- En Telegram: `/filamento` lista las fichas, `/filamento rapid` carga una, y
+  `/filamento nuevo Sunlu PLA Matte` crea otra desde la plantilla.
+- Con la ficha cargada, el diagnóstico la tiene en cuenta por encima de las reglas
+  generales del material.
+- **Aprende sola**: al terminar cada impresión, el informe incluye la sección «Para la
+  ficha del filamento» y sus viñetas se añaden al *Historial* de la ficha.
+- Cuando algo del historial se confirme varias veces, pásalo a mano a *Perfil
+  validado*; y lo que se descarte, quítalo de *Recomendaciones sin validar*.
+- Las fichas y `aprendizajes.md` cambian en tu máquina: actualiza con
+  `git pull --autostash` para no perder lo aprendido.
 
 ## 2. Ajustar el filtro rápido
 

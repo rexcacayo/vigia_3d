@@ -10,6 +10,7 @@ import anthropic
 from PIL import Image
 
 from . import config as C
+from . import filamentos as F
 from .maquina import P
 
 log = logging.getLogger("vigia.vision")
@@ -148,7 +149,10 @@ def _leer(nombre: str) -> str:
 def sistema_diagnostico() -> str:
     """Skill completa: se relee en cada llamada para que los aprendizajes nuevos cuenten."""
     formato = FORMATO_DIAG.replace("__TIPOS__", "|".join(TIPOS_ACCION))
-    partes = [_leer("SKILL.md"), P.DESCRIPCION, _leer("materiales.md"), _leer("correcciones.md"),
+    fil = F.ficha()
+    fil = ("## Filamento cargado (ficha)\nPrioridad sobre las reglas generales del material.\n\n"
+           + fil) if fil else ""
+    partes = [_leer("SKILL.md"), P.DESCRIPCION, _leer("materiales.md"), fil, _leer("correcciones.md"),
               f"Acciones que admite ESTA impresora: {', '.join(TIPOS_ACCION)}.",
               _leer("aprendizajes.md"), formato]
     return "\n\n---\n\n".join(p for p in partes if p)
@@ -255,6 +259,10 @@ aplicadas y comentarios del dueño. Escribe un informe breve en español (Markdo
 actual si se conoce → valor propuesto, y por qué.
 4. **Calibraciones** de Orca que conviene hacer (temperatura, flujo, retracción, \
 velocidad volumétrica máx., pressure advance, voladizos), solo si vienen al caso.
+5. **Para la ficha del filamento** (sección con ese título exacto): 1-3 viñetas cortas \
+con lo aprendido de ESTE filamento en esta impresión (temperaturas que funcionaron, \
+fallos y su causa, falsas alarmas del vigía). Si no hay nada nuevo, una viñeta: \
+«nada nuevo». Ten en cuenta la ficha que te paso para no repetir lo ya sabido.
 No inventes datos que no estén en el registro. Si todo fue bien, dilo y sé breve."""
 
 
@@ -262,7 +270,9 @@ def informe_postmortem(registro: dict) -> str:
     resp = _crear(
         model=C.MODELO_DIAG, max_tokens=1200,
         system=[{"type": "text", "text": INFORME + "\n\n---\n\n" + P.DESCRIPCION
-                  + "\n\n---\n\n" + _leer("materiales.md")}],
+                  + "\n\n---\n\n" + _leer("materiales.md")
+                  + ("\n\n---\n\n## Ficha del filamento\n" + F.ficha(registro.get("filamento"))
+                     if registro.get("filamento") else "")}],
         messages=[{"role": "user", "content": json.dumps(registro, ensure_ascii=False)}],
     )
     return "".join(b.text for b in resp.content if b.type == "text").strip()
