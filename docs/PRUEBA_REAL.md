@@ -36,3 +36,22 @@ Ajustes recomendados para la prueba en `.env`: `INFORME_CADA_MIN=10`, `INTERVALO
 - Revisa `DIR_CASOS/vigia.log` y `casos.jsonl`: ¿hubo sospechas sin motivo? ¿se le escapó algo?
 - Anota los resultados en un *issue* o en el CHANGELOG y actualiza la sección 0 de
   [ROADMAP.md](ROADMAP.md).
+
+---
+
+## Anycubic Kobra 3 Max (adaptador `anycubic`, pendiente de validar)
+
+Hazla en este orden; cada paso sin el anterior en verde no tiene sentido.
+
+| ✔ | Paso | Cómo | Resultado esperado |
+|---|---|---|---|
+| ☐ | 1. Conexión | `PRINTER_TIPO=anycubic PRINTER_IP=<ip> ./venv/bin/python -m vigia.impresoras.anycubic estado` (impresora encendida, sin imprimir) | JSON con temperaturas; `imprimiendo: false` |
+| ☐ | 2. Cámara *(si la tiene)* | `… anycubic foto` | `prueba_anycubic.jpg` en `DIR_CASOS` |
+| ☐ | 3. Estado imprimiendo | Lanzar una pieza corta (30 min, PLA) y repetir `… anycubic estado` | `imprimiendo: true`, capa y fichero correctos |
+| ☐ | 4. **Pausa** | `… anycubic pausa` en las primeras capas | La impresora se para; `pausada: True` |
+| ☐ | 5. **Reanudar** | `… anycubic reanudar` | Continúa sin defecto visible en la pieza |
+| ☐ | 6. Sensor de filamento | Con la misma pieza, deja `… anycubic escuchar` abierto y **corta el filamento** antes del sensor | Ver qué hace la impresora y qué mensaje manda (queda en `anycubic_mensajes.jsonl`) |
+| ☐ | 7. Vigía completo | Copia del proyecto con su `.env` (`PRINTER_TIPO=anycubic`, `VIGIA_SESION=vigia-kobra`, otro `DIR_CASOS`, **otro bot de Telegram**) y `./arrancar.sh` | «👀 Empiezo a vigilar», partes, y pausa con aviso ante falta de filamento |
+
+Cuando todo esté en verde: marcar la Kobra 3 Max como ✅ en COMPATIBILIDAD.md y, si las
+temperaturas y el ventilador también responden, añadirlos a `CAPACIDADES`.
