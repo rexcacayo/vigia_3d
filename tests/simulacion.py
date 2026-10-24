@@ -170,6 +170,27 @@ def main() -> None:
     comprobar(any("Sigue pausada" in e[1] for e in ENVIADOS[n:]), "recuerda que sigue pausada")
     v.boton("rea:si", MSG)
     comprobar(DET["status"] == "printing" and v.pausa_vigia is None, "▶️ Reanudar la reanuda")
+
+    print("Filamento y pausas ajenas:")
+    n = len(ENVIADOS)
+    DET["status"] = "paused"  # se pausa sola (sensor de filamento, pantalla…)
+    v.ciclo_vigilancia()
+    comprobar(any("se ha pausado" in e[1] for e in ENVIADOS[n:]), "avisa si la impresora se pausa sola")
+    n = len(ENVIADOS)
+    v.ciclo_vigilancia()
+    comprobar(not any("se ha pausado" in e[1] for e in ENVIADOS[n:]), "y no repite el aviso en cada ciclo")
+    v.boton("rea:si", MSG)
+    RESPUESTAS.append(FILTRO_OK)
+    v.ciclo_vigilancia()
+    n = len(ENVIADOS)
+    DET["errorCode"] = "posible falta de filamento (print/report)"
+    RESPUESTAS.extend([FILTRO_OK] * 3)
+    v.ciclo_vigilancia()
+    comprobar(DET["status"] == "paused" and any("SIN FILAMENTO" in e[1] for e in ENVIADOS[n:]),
+              "la impresora avisa de falta de filamento → pausa y avisa")
+    DET["errorCode"] = ""
+    v.boton("rea:si", MSG)
+    RESPUESTAS.clear()
     C.AUTO_PAUSA = False
 
     DET.update(printLayer=0, rightTemp=140)

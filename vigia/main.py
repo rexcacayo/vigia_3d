@@ -76,6 +76,8 @@ class Vigia:
         self.motor = Motor()
         self.lock = threading.RLock()
         self.historial: deque[bytes] = deque(maxlen=3)
+        self.capas_hist: deque = deque(maxlen=3)  # capa de cada fotograma del historial
+        self.pausa_usuario = False  # pausa pedida por el usuario (no hay que avisar)
         self.estado: dict = {}
         self.ultimo_jpeg: bytes | None = None
         self.ultimo_diag: dict = {}
@@ -109,6 +111,7 @@ class Vigia:
         V.contador.reset()
         self._limpiar_casos()
         self.historial.clear()
+        self.capas_hist.clear()
         self.ciclo = 0
         self.ultimo_diag_ts = 0.0
         self.alerta_hasta = 0.0
@@ -190,10 +193,13 @@ class Vigia:
             self.estado = e
 
         if e["pausada"]:
+            if self.pausa_vigia is None and not self.pausa_usuario:
+                self._pausa_ajena(e)
             self._recordar_pausa()
             self.espera = C.INTERVALO_ALERTA if self.pausa_vigia else C.INTERVALO
             return
         self.pausa_vigia = None  # reanudada (desde Telegram o desde la pantalla) o terminada
+        self.pausa_usuario = False
         if not e["imprimiendo"]:
             if self.trabajo is not None:
                 self._fin_trabajo(e)
@@ -212,7 +218,9 @@ class Vigia:
                 except Exception as ex:  # noqa: BLE001
                     log.warning("Luz: %s", ex)
 
-        if e.get("error"):
+        if "filamento" in str(e.get("error") or "").lower():
+            self._sin_filamento(e)
+        elif e.get("error"):
             self._avisar_una_vez("error:" + str(e["error"]),
                                  lambda: self.bot.texto(f"⚠️ La impresora reporta el error <b>{esc(e['error'])}</b>"))
 
@@ -230,6 +238,7 @@ class Vigia:
 
         with self.lock:
             self.historial.append(jpeg)
+            self.capas_hist.append((e.get("capa") or {}).get("actual"))
             self.ultimo_jpeg = jpeg
         self.ciclo += 1
 
@@ -273,7 +282,7 @@ class Vigia:
 
         try:
             with self.lock:
-                diag = V.diagnosticar(list(self.historial), e)
+                diag = V.diagnosticar(list(self.historial), e, list(self.capas_hist))
         except V.PresupuestoAgotado:
             self._aviso_presupuesto_agotado()
             return
@@ -407,6 +416,34 @@ class Vigia:
             log.error("No pude pausar: %s", ex)
         return False
 
+    def _pausa_ajena(self, e: dict) -> None:
+        """La impresora se ha pausado sin que lo pidiéramos (sensor de filamento, pantalla…)."""
+        motivo = e.get("error") or "la impresora no dice por qué (¿se ha acabado el filamento?)"
+        log.warning("Pausa ajena al vigía: %s", motivo)
+        self.pausa_vigia = {"desde": time.time(), "ultimo": time.time(), "motivo": motivo}
+        texto = (f"⏸️ <b>La impresora se ha pausado</b> (no he sido yo).\nMotivo: {esc(str(motivo))}\n\n"
+                 "Revísala; si cambias el filamento, pulsa ▶️ Reanudar cuando esté listo.")
+        botones = [[("▶️ Reanudar", "rea:si")]] if "reanudar" in P.CAPACIDADES else None
+        try:
+            self.bot.foto(P.capturar(), texto, botones)
+        except Exception:  # noqa: BLE001
+            self.bot.texto(texto, botones)
+
+    def _sin_filamento(self, e: dict) -> None:
+        """La impresora informa de falta de filamento pero sigue imprimiendo: pausar ya."""
+        diag = {"estado": "fallo", "gravedad": "detener", "tipo": "sin_filamento", "confianza": 1.0,
+                "explicacion": f"La impresora informa: {e.get('error')}"}
+        pausada = C.AUTO_PAUSA and "pausar" in P.CAPACIDADES and self._pausar_y_verificar(diag)
+        texto = ("⏸️ <b>SIN FILAMENTO: HE PAUSADO LA IMPRESIÓN</b>\nCambia la bobina y pulsa ▶️ Reanudar."
+                 if pausada else "🛑 <b>SIN FILAMENTO</b>: la impresora avisa y <b>sigue imprimiendo</b>. Párala tú.")
+        botones = [[("▶️ Reanudar", "rea:si")]] if pausada else None
+        def enviar() -> None:
+            try:
+                self.bot.foto(P.capturar(), texto, botones)
+            except Exception:  # noqa: BLE001
+                self.bot.texto(texto, botones)
+        self._avisar_una_vez("sin_filamento", enviar, 300)
+
     def _recordar_pausa(self) -> None:
         """Mientras siga pausada por el vigía, lo recuerda cada RECORDATORIO_PAUSA_MIN."""
         pv = self.pausa_vigia
@@ -486,7 +523,8 @@ class Vigia:
                 e, j = P.estado(), P.capturar()
                 with self.lock:
                     self.historial.append(j)
-                    d = V.diagnosticar(list(self.historial), e)
+                    self.capas_hist.append((e.get("capa") or {}).get("actual"))
+                    d = V.diagnosticar(list(self.historial), e, list(self.capas_hist))
                 cid = self._guardar_caso(j, e, d, "parte")
                 self.bot.foto(j, f"📋 <b>Parte</b> {_icono(d)}\n{self._texto_estado(e)}\n\n{self._texto_diag(d)}",
                               self._botones_feedback(cid))
@@ -525,6 +563,7 @@ class Vigia:
         try:
             if clave == "pausa":
                 if valor == "si":
+                    self.pausa_usuario = True
                     P.pausar()
                     self.bot.quitar_botones(mensaje, "⏸️ Impresión pausada. /reanudar para seguir.")
                 else:

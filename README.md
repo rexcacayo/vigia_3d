@@ -44,6 +44,7 @@ Velocidad: 100 % → 80 %            [ ✅ Aplicar ]  [ ❌ Ignorar ]
 |---|---|
 | Flashforge Adventurer 5M Pro (firmware de serie) | ✅ Probada |
 | Flashforge AD5M / AD5X / Creator 5 | 🟡 Misma API, sin probar |
+| Anycubic Kobra 3 / 3 Max / S1 (modo LAN) | 🧪 Implementado, pendiente de probar |
 | Klipper + Moonraker | 🔜 Esbozo de adaptador listo para completar |
 | OctoPrint · Bambu Lab (LAN) | 💡 Posibles |
 

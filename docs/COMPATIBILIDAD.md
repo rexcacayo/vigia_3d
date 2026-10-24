@@ -15,6 +15,7 @@ El vigía tiene dos partes:
 | **Flashforge Adventurer 5M Pro**, firmware de serie 5.1.9 | ✅ Probada | `flashforge` | Interna, MJPEG :8080 |
 | Flashforge Adventurer 5M, firmware de serie | 🟡 Debería funcionar (misma API), sin probar | `flashforge` | Necesita cámara USB compatible |
 | Flashforge AD5X / Creator 5 / Creator 5 Pro | 🟡 Misma familia de API, sin probar | `flashforge` | Según modelo |
+| **Anycubic Kobra 3 / 3 Max / 3 V2 / S1 / S1 Max**, firmware de serie, modo LAN | 🧪 Implementado, pendiente de probar en la Kobra 3 Max | `anycubic` | Accesorio, HTTP-FLV :18088 (necesita ffmpeg) |
 | Cualquier impresora con **Klipper + Moonraker** (Creality K1, Qidi, Voron, Sovol, AD5M con Forge-X/ZMod…) | 🔜 Planificado | `klipper` (pendiente, hay un esbozo en ADAPTADORES.md) | Webcam de Moonraker/crowsnest |
 | OctoPrint (Prusa, Ender… con Raspberry) | 💡 Posible | pendiente | Webcam de OctoPrint |
 | Bambu Lab en modo LAN | 💡 Posible (MQTT) | pendiente | Stream propio |
@@ -81,6 +82,52 @@ Formato: `{"serialNumber": "...", "checkCode": "...", "payload": {"cmd": "<cmd>"
 - ❌ **Pressure advance**
 - ❌ Aceleraciones y límites de velocidad
 - ❌ Snapshot de la cámara (solo stream) y más de un espectador a la vez
+
+---
+
+## API Anycubic Kobra 3 / S1 (firmware de serie, modo LAN)
+
+Protocolo de ingeniería inversa de la comunidad, el mismo que usa Anycubic Slicer
+Next en modo LAN ([notas](https://github.com/sebmueller/kobra3-lan-bridge/blob/main/docs/mqtt-protocol.md)).
+Sin nube ni cuenta. La impresora sigue funcionando con el slicer y la app.
+
+### Requisitos
+- Impresora y PC en la misma red; modo LAN de Anycubic Slicer Next disponible
+  (firmware 2.4.x o posterior; versiones viejas pueden pedir vincularla una vez con la app).
+- `ffmpeg` instalado para sacar fotos del vídeo (`sudo apt install ffmpeg`).
+- En el `.env`: `PRINTER_TIPO=anycubic` y `PRINTER_IP`.
+
+### Puertos
+| Puerto | Protocolo | Uso |
+|---|---|---|
+| 18910 | HTTP | Apretón de manos: `GET /info` → token; `POST /ctrl` firmado (md5) → credenciales MQTT cifradas (AES-128-CBC) |
+| 9883 | MQTT con TLS (broker en la impresora) | Estado y órdenes |
+| 18088 | HTTP-FLV (`/flv`) | Vídeo; solo da imagen tras `video/startCapture` |
+
+### Órdenes MQTT (`anycubic/anycubicCloud/v1/web/printer/<modelo>/<id>/<tipo>`)
+| `type` / `action` | `data` | Qué hace | ¿Lo usa el vigía? |
+|---|---|---|---|
+| `info` / `query` | — | Estado completo (`project`, `temp`, `fan_speed_pct`…) | ✅ En cada ciclo |
+| `print` / `pause` | `{"taskid": "-1"}` | Pausar | ✅ |
+| `print` / `resume` | `{"taskid": "-1"}` | Reanudar (es `resume`, no `continue`) | ✅ |
+| `print` / `stop` | `{"taskid": "-1"}` | Cancelar | ❌ Nunca |
+| `print` / `update` | `{"taskid": "-1", "settings": {...}}` | Temperaturas, ventilador, modo de velocidad (1/2/3) | 🧪 Implementado, desactivado hasta probarlo |
+| `light` / `control` | `{"type": 1, "status": 1, "brightness": 100}` | Luz del cabezal | ✅ |
+| `video` / `startCapture` | — | Enciende el codificador de vídeo | ✅ Antes de capturar |
+
+### Lo que NO permite
+- ❌ G-code libre, flujo, retracción, Z offset en marcha.
+- ❌ % de velocidad: solo modos silencioso / estándar / deportivo.
+
+### Falta de filamento
+- Si la impresora **se pausa sola** (sensor), el vigía avisa con foto y recuerda cada
+  `RECORDATORIO_PAUSA_MIN` hasta que se reanude.
+- Si algún mensaje de la impresora menciona falta de filamento (`runout`, `lack`…) y
+  sigue imprimiendo, el vigía **pausa** y avisa.
+- Por cámara: si la capa avanza y la pieza no crece, el diagnóstico lo marca como
+  `sin_filamento` y pausa.
+- Todos los mensajes de la impresora se guardan en `DIR_CASOS/anycubic_mensajes.jsonl`
+  para descubrir el campo exacto del sensor la primera vez que salte.
 
 ---
 

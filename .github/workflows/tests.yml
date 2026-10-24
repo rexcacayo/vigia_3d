@@ -18,3 +18,5 @@ jobs:
         run: python -m py_compile vigia/*.py vigia/impresoras/*.py tests/*.py
       - name: Simulación de impresión completa
         run: python -m tests.simulacion
+      - name: Adaptador Anycubic
+        run: python -m tests.anycubic

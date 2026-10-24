@@ -2,6 +2,16 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.8.0: Anycubic Kobra 3 y falta de filamento
+- **Adaptador `anycubic`** para Kobra 3 / 3 Max / 3 V2 / S1 / S1 Max por su protocolo
+  LAN (MQTT con TLS en la impresora, sin nube): estado, pausar, reanudar, luz y foto.
+  Pendiente de probar en la Kobra 3 Max. Pruebas a mano:
+  `python -m vigia.impresoras.anycubic estado|pausa|reanudar|foto|escuchar`.
+- **Falta de filamento**: si la impresora informa de ello, el vigía pausa y avisa; si
+  se pausa sola, avisa con foto y lo recuerda; por cámara, «la capa avanza y la pieza no
+  crece» → `sin_filamento` → pausa.
+- Cada fotograma del diagnóstico lleva su número de capa.
+
 ## 0.7.0: fichas de filamento que aprenden
 - **Fichas por marca y tipo** en `skill/filamentos/`, con datos del fabricante, perfil
   validado, recomendaciones pendientes de probar, síntomas en cámara y correcciones.

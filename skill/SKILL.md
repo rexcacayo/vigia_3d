@@ -34,6 +34,13 @@ La sección **"Máquina"** (más abajo) describe la impresora concreta y su cám
 5. Nunca digas `ok` si en la explicación admites que no ves bien la zona relevante:
    usa `sospecha` / `vigilar`.
 
+## Sin filamento (impresiones largas)
+Cada fotograma indica su capa. Si la **capa avanza** entre fotogramas pero la pieza
+**no crece** (la parte de arriba no cambia, no hay líneas nuevas, la boquilla se mueve
+sin dejar material), lo más probable es que se haya acabado el filamento o que el
+extrusor no empuje: `fallo` / `detener`, tipo `sin_filamento`, acción `pausar`.
+Pausar a tiempo permite cambiar la bobina y reanudar sin perder la pieza.
+
 ## Acciones
 Solo puedes proponer acciones de la lista blanca de `correcciones.md` **que admita
 esta impresora** (se indica más abajo). El programa aplica límites estrictos por su

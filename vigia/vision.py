@@ -131,7 +131,7 @@ Lo primero que importa es "gravedad": decídela y escríbela antes de extenderte
 {
   "estado": "ok" | "sospecha" | "fallo",
   "gravedad": "ok" | "vigilar" | "detener",
-  "tipo": "<espagueti|despegue_cama|warping|subextrusion|sobreextrusion|stringing|capa_desplazada|rizado_voladizo|isla_fallida|blob_boquilla|boquilla_obstruida|primera_capa_mala|otro|null>",
+  "tipo": "<espagueti|despegue_cama|warping|subextrusion|sobreextrusion|stringing|capa_desplazada|rizado_voladizo|isla_fallida|blob_boquilla|boquilla_obstruida|sin_filamento|primera_capa_mala|otro|null>",
   "zona": "<parte de la pieza afectada o null>",
   "confianza": <0.0-1.0>,
   "parametro": "<parámetro más probable implicado o null>",
@@ -206,10 +206,12 @@ def filtrar(jpeg: bytes) -> dict:
                  getattr(resp, "stop_reason", None))
 
 
-def diagnosticar(imagenes: list[bytes], estado: dict) -> dict:
+def diagnosticar(imagenes: list[bytes], estado: dict, capas: list | None = None) -> dict:
     contenido = []
     for n, img in enumerate(imagenes, 1):
-        contenido.append({"type": "text", "text": f"Fotograma {n}/{len(imagenes)} (más reciente al final):"})
+        capa = capas[n - 1] if capas and len(capas) == len(imagenes) else None
+        txt_capa = f", capa {capa}" if capa is not None else ""
+        contenido.append({"type": "text", "text": f"Fotograma {n}/{len(imagenes)}{txt_capa} (más reciente al final):"})
         contenido.append(_bloque(img))
     contenido.append({"type": "text", "text": "Ampliación de la zona de la pieza del fotograma más reciente:"})
     contenido.append(_bloque(ampliar(imagenes[-1])))

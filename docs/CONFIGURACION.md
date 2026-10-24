@@ -6,7 +6,8 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 ## Impresora
 | Variable | Por defecto | Qué es |
 |---|---|---|
-| `PRINTER_TIPO` | `flashforge` | Adaptador a usar: `vigia/impresoras/<PRINTER_TIPO>.py` |
+| `VIGIA_SESION` | `vigia` | Nombre de la sesión tmux de `arrancar.sh`. Para vigilar **dos impresoras**: otra copia del proyecto con su `.env`, otro `VIGIA_SESION`, otro `DIR_CASOS` y **otro bot de Telegram** (un bot no puede escuchar desde dos programas a la vez) |
+| `PRINTER_TIPO` | `flashforge` | Adaptador a usar: `vigia/impresoras/<PRINTER_TIPO>.py` (`flashforge`, `anycubic`) |
 | `PRINTER_IP` | — | IP de la impresora en tu red |
 | `PRINTER_SN` | — | *(Flashforge)* Número de serie (`~M115` o *Ajustes → Acerca de*) |
 | `PRINTER_CHECK_CODE` | — | *(Flashforge)* "ID de la impresora" en *Ajustes → Red* |
