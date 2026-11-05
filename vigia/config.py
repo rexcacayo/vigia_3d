@@ -27,6 +27,16 @@ def _bool(nombre: str, defecto: str = "false") -> bool:
 PRINTER_TIPO = os.getenv("PRINTER_TIPO", "flashforge").strip().lower()
 PRINTER_IP = os.getenv("PRINTER_IP", "")
 
+# Cámara extra (segunda vista para el diagnóstico): vacío | picam | /dev/video0 | http(s)://…
+CAMARA_EXTRA = os.getenv("CAMARA_EXTRA", "").strip()
+CAMARA_EXTRA_RESOLUCION = os.getenv("CAMARA_EXTRA_RESOLUCION", "1280x960").strip()
+CAMARA_EXTRA_ENFOQUE = os.getenv("CAMARA_EXTRA_ENFOQUE", "").strip()  # picam Module 3: dioptrías
+CAMARA_EXTRA_V4L2 = os.getenv("CAMARA_EXTRA_V4L2", "").strip()        # USB: p. ej. focus_automatic_continuous=0
+CAMARA_EXTRA_DESCRIPCION = os.getenv(
+    "CAMARA_EXTRA_DESCRIPCION",
+    "Cámara encima de la tapa, mirando hacia abajo en diagonal a través del plástico: "
+    "ve la cara superior de la pieza; puede haber reflejos o polvo de la tapa (no son defectos).")
+
 # Claude
 ANTHROPIC_WORKSPACE_ID = os.getenv("ANTHROPIC_WORKSPACE_ID", "").strip()
 MODELO_FILTRO = os.getenv("MODELO_FILTRO", "claude-haiku-4-5-20251001")

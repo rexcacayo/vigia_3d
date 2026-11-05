@@ -73,8 +73,11 @@ def elegir_fotos(casos: list[dict]) -> list[tuple[str, Path]]:
     fotos = []
     for c in elegidos:
         capa = c.get("capa") or 0
-        nombre = f"c{int(capa):04d}_{c.get('clase')}_{c['id']}.jpg"
-        fotos.append((nombre, C.DIR_CASOS / f"{c['id']}.jpg"))
+        nombre = f"c{int(capa):04d}_{c.get('clase')}_{c['id']}"
+        fotos.append((f"{nombre}.jpg", C.DIR_CASOS / f"{c['id']}.jpg"))
+        extra = C.DIR_CASOS / f"{c['id']}_extra.jpg"
+        if extra.exists():  # vista superior del mismo momento
+            fotos.append((f"{nombre}_superior.jpg", extra))
     return fotos
 
 

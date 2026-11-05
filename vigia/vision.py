@@ -209,7 +209,7 @@ def filtrar(jpeg: bytes) -> dict:
 
 
 def diagnosticar(imagenes: list[bytes], estado: dict, capas: list | None = None,
-                 perfil: dict | None = None) -> dict:
+                 perfil: dict | None = None, extra: bytes | None = None) -> dict:
     contenido = []
     for n, img in enumerate(imagenes, 1):
         capa = capas[n - 1] if capas and len(capas) == len(imagenes) else None
@@ -218,6 +218,10 @@ def diagnosticar(imagenes: list[bytes], estado: dict, capas: list | None = None,
         contenido.append(_bloque(img))
     contenido.append({"type": "text", "text": "Ampliación de la zona de la pieza del fotograma más reciente:"})
     contenido.append(_bloque(ampliar(imagenes[-1])))
+    if extra:
+        contenido.append({"type": "text", "text": "Segunda vista, del mismo momento que el fotograma más "
+                          f"reciente. {C.CAMARA_EXTRA_DESCRIPCION}"})
+        contenido.append(_bloque(extra))
     contenido.append({"type": "text", "text": f"Estado de la máquina: {_resumen_estado(estado)}"})
     if perfil:
         contenido.append({"type": "text", "text": PF.texto(perfil)})

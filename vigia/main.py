@@ -12,6 +12,7 @@ import anthropic
 from . import config as C
 from .maquina import P
 from . import filamentos as F
+from . import camara_extra as CX
 from . import conocimiento as CO
 from . import perfil as PF
 from . import plataforma as PL
@@ -84,6 +85,7 @@ class Vigia:
         self.historial: deque[bytes] = deque(maxlen=3)
         self.capas_hist: deque = deque(maxlen=3)  # capa de cada fotograma del historial
         self.pausa_usuario = False  # pausa pedida por el usuario (no hay que avisar)
+        self.ultimo_extra: bytes | None = None  # última foto de la cámara extra
         self.estado: dict = {}
         self.ultimo_jpeg: bytes | None = None
         self.ultimo_diag: dict = {}
@@ -134,6 +136,8 @@ class Vigia:
     def _guardar_caso(self, jpeg: bytes, e: dict, diag: dict, clase: str) -> str:
         cid = datetime.now().strftime("%Y%m%d-%H%M%S")
         (C.DIR_CASOS / f"{cid}.jpg").write_bytes(jpeg)
+        if self.ultimo_extra:
+            (C.DIR_CASOS / f"{cid}_extra.jpg").write_bytes(self.ultimo_extra)
         reg = {"id": cid, "clase": clase, "estado": e, "diagnostico": diag}
         with (C.DIR_CASOS / "casos.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps(reg, ensure_ascii=False) + "\n")
@@ -247,7 +251,10 @@ class Vigia:
                 self.aviso_camara = True
             return
 
+        extra = CX.capturar() if CX.activa() else None
+
         with self.lock:
+            self.ultimo_extra = extra
             self.historial.append(jpeg)
             self.capas_hist.append((e.get("capa") or {}).get("actual"))
             self.ultimo_jpeg = jpeg
@@ -294,7 +301,7 @@ class Vigia:
         try:
             with self.lock:
                 diag = V.diagnosticar(list(self.historial), e, list(self.capas_hist),
-                                      (self.trabajo or {}).get("perfil"))
+                                      (self.trabajo or {}).get("perfil"), self.ultimo_extra)
         except V.PresupuestoAgotado:
             self._aviso_presupuesto_agotado()
             return
@@ -323,6 +330,7 @@ class Vigia:
         elif toca_parte:
             self.bot.foto(jpeg, f"📋 <b>Parte</b> {_icono(diag)}\n{self._texto_estado(e)}\n\n{self._texto_diag(diag)}",
                           self._botones_feedback(cid))
+            self._foto_extra()
         if toca_parte:
             self.ultimo_parte = time.time()
 
@@ -406,8 +414,10 @@ class Vigia:
         else:
             cab = f"{_icono(d)} <b>Aviso</b>"
             botones, espera = self._botones_feedback(cid), C.COOLDOWN
-        self._avisar_una_vez(clave, lambda: self.bot.foto(
-            jpeg, f"{cab}\n{self._texto_diag(d)}\n\n{self._texto_estado(e)}", botones), espera)
+        def enviar() -> None:
+            self.bot.foto(jpeg, f"{cab}\n{self._texto_diag(d)}\n\n{self._texto_estado(e)}", botones)
+            self._foto_extra()
+        self._avisar_una_vez(clave, enviar, espera)
 
     def _pausar_y_verificar(self, d: dict) -> bool:
         """Pausa y comprueba en la máquina que de verdad se ha pausado."""
@@ -535,16 +545,22 @@ class Vigia:
                 self.bot.texto(self._texto_estado(P.estado()))
             elif cmd == "foto":
                 self.bot.foto(P.capturar(), self._texto_estado(P.estado()))
+                if CX.activa():
+                    self.ultimo_extra = CX.capturar() or self.ultimo_extra
+                    self._foto_extra()
             elif cmd == "parte":
                 e, j = P.estado(), P.capturar()
+                x = CX.capturar() if CX.activa() else None
                 with self.lock:
+                    self.ultimo_extra = x
                     self.historial.append(j)
                     self.capas_hist.append((e.get("capa") or {}).get("actual"))
                     d = V.diagnosticar(list(self.historial), e, list(self.capas_hist),
-                                      (self.trabajo or {}).get("perfil"))
+                                      (self.trabajo or {}).get("perfil"), x)
                 cid = self._guardar_caso(j, e, d, "parte")
                 self.bot.foto(j, f"📋 <b>Parte</b> {_icono(d)}\n{self._texto_estado(e)}\n\n{self._texto_diag(d)}",
                               self._botones_feedback(cid))
+                self._foto_extra()
             elif cmd in ("pausa", "pausar"):
                 self.bot.texto("¿Pauso la impresión?", [[("⏸️ Sí, pausar", "pausa:si"), ("Cancelar", "pausa:no")]])
             elif cmd in ("reanudar", "continuar"):
@@ -638,6 +654,11 @@ class Vigia:
             self.bot.texto("💶 Presupuesto diario agotado: hoy no puedo consultar a Claude.")
         except Exception as ex:  # noqa: BLE001
             self.bot.texto(f"⚠️ No pude mirar la impresión: {esc(ex)}")
+
+    def _foto_extra(self) -> None:
+        """Envía la última vista de la cámara extra, si la hay."""
+        if self.ultimo_extra:
+            self.bot.foto(self.ultimo_extra, "🔭 Vista superior (cámara extra)")
 
     def _cmd_analizar(self) -> None:
         """Manda al analista de la plataforma la última impresión con informe guardado."""

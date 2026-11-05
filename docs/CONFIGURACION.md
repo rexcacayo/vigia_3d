@@ -42,6 +42,11 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 | `ZOOM_REGION` | `0.15,0.2,0.85,0.9` | Zona de la foto (fracciones x0,y0,x1,y1) que se amplía |
 | `FILTRO_CON_ZOOM` | `true` | El filtro mira también la ampliación (más preciso, ~2× su coste) |
 | `DIR_LAMINADOS` | *(vacío)* | Carpeta donde guardas los `.3mf` laminados de Orca. El vigía busca ahí el que imprime la máquina (por nombre), lee su perfil y lo usa en el diagnóstico y en el informe. En WSL, p. ej. `/mnt/c/Users/<usuario>/Documents/laminados` |
+| `CAMARA_EXTRA` | *(vacío)* | Segunda vista para el diagnóstico: `picam` (cámara de la Raspberry), `/dev/video0` (webcam USB) o una URL de JPEG/MJPEG. Se prueba con `python -m vigia.camara_extra` |
+| `CAMARA_EXTRA_RESOLUCION` | `1280x960` | Resolución de la foto extra |
+| `CAMARA_EXTRA_ENFOQUE` | *(vacío)* | Solo picam Module 3: enfoque fijo en dioptrías (≈ 100 / distancia en cm; 3 ≈ 33 cm) |
+| `CAMARA_EXTRA_V4L2` | *(vacío)* | Solo USB: ajustes fijos para `v4l2-ctl`, p. ej. `focus_automatic_continuous=0,focus_absolute=40` |
+| `CAMARA_EXTRA_DESCRIPCION` | encima de la tapa… | Cómo es esa vista (va al prompt del diagnóstico) |
 | `SKILLS_OCI` | `true` | Instalar las skills desde GHCR (repo vigia-agentes) por digest al arrancar y en cada impresión. `false` = usar la copia `skill/` del repo |
 | `ANALISTA` | `false` | `true` = al terminar cada impresión, el **agente analista** de Claude Platform (repo [vigia-agentes](https://github.com/rexcacayo/vigia-agentes)) hace el análisis profundo y lo manda por Telegram |
 | `VAULT_AGENTES` | *(vacío)* | ID `vlt_...` del vault con el token de GitHub (lo crea `scripts/crear_vault.py` del repo de agentes) |

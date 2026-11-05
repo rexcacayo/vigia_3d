@@ -34,6 +34,12 @@ La sección **"Máquina"** (más abajo) describe la impresora concreta y su cám
 5. Nunca digas `ok` si en la explicación admites que no ves bien la zona relevante:
    usa `sospecha` / `vigilar`.
 
+## Segunda vista (cámara extra)
+A veces recibes además una **vista superior** del mismo momento (cámara encima de la tapa).
+Úsala para lo que la cámara lateral no ve: la cara superior, detalles pequeños, si la pieza
+crece capa a capa. Reflejos, polvo o el marco de la tapa en esa vista no son defectos. Si las
+dos vistas se contradicen, fíate de la que ve la zona afectada de frente y dilo.
+
 ## Perfil del laminado
 Si recibes el «Perfil del laminado (OrcaSlicer)», úsalo: relaciona lo que ves con su
 valor (p. ej. hilos con `nozzle_temperature` y `retraction_length`, voladizos con

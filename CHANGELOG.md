@@ -2,6 +2,13 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.12.0: cámara extra (vista superior)
+- `CAMARA_EXTRA`: cámara de la Raspberry (`picam`), webcam USB (`/dev/video0`) o URL. El
+  diagnóstico recibe la vista superior del mismo momento, se guarda con cada caso, viaja al
+  analista y llega por Telegram con los partes, los avisos y `/foto`.
+- Si la cámara extra falla, el vigía sigue con la de la impresora.
+- Prueba rápida: `python -m vigia.camara_extra`.
+
 ## 0.11.0: una sola fuente de verdad para las skills
 - El vigía **instala sus skills desde GHCR** (artefactos OCI publicados por `vigia-agentes`)
   por digest, al arrancar y al empezar cada impresión: `skills.json` declara cuáles y

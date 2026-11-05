@@ -226,6 +226,25 @@ def main() -> None:
     comprobar(not RESPUESTAS, "pasados 2 min vuelve a consultar")
     C.DIAG_ENTRE_SOSPECHAS_S = 0
 
+    print("Cámara extra (vista superior):")
+    from vigia import camara_extra as CX
+    EXTRA = bytes([0xFF, 0xD8]) + b"EXTRA" + bytes([0xFF, 0xD9])
+    C.CAMARA_EXTRA = "picam"
+    CX.shutil.which = lambda exe: "/usr/bin/" + exe
+    CX.subprocess.run = lambda orden, **kw: __import__("types").SimpleNamespace(stdout=EXTRA, stderr=b"", returncode=0)
+    v.ultimo_diag_ts, v.alerta_hasta = 0, 0
+    n = len(ENVIADOS)
+    ciclo(SOSPECHA, OK)
+    import base64 as _b64
+    comprobar(_b64.b64encode(EXTRA).decode() in json.dumps(LLAMADAS[-1]["messages"]),
+              "el diagnóstico recibe la vista superior")
+    comprobar(any(f.name.endswith("_extra.jpg") for f in TMP.glob("*.jpg")), "se guarda junto al caso")
+    v.comando("foto", "")
+    comprobar(any("Vista superior" in e[1] for e in ENVIADOS[n:]), "/foto envía las dos vistas")
+    CX.subprocess.run = lambda orden, **kw: __import__("types").SimpleNamespace(stdout=b"", stderr=b"sin camara", returncode=1)
+    comprobar(CX.capturar() is None, "si la cámara extra falla, el vigía sigue sin ella")
+    C.CAMARA_EXTRA = ""
+
     print("Robustez:")
     # candado de cámara: dos capturas simultáneas nunca se solapan
     import threading

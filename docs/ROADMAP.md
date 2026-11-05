@@ -38,7 +38,7 @@ Checklist de la prueba completa: [PRUEBA_REAL.md](PRUEBA_REAL.md).
 |---|---|---|---|
 | 🔴 | **Medición de aciertos**: script que reevalúa los casos marcados con 👍/👎 con la skill actual y da el % de aciertos, falsos positivos y fallos no detectados | Cada cambio de prompt o skill se demuestra con datos, no a ojo | Medio |
 | 🔴 | **Ajuste del filtro** con los datos reales (motivos de `filtro: sospecha` en el log) | El filtro decide el coste y la sensibilidad | Bajo |
-| 🟡 | **Segunda cámara cenital** (webcam USB) | La cámara de la AD5M ve la pieza de lado; los defectos superiores de piezas pequeñas no se ven (caso de la mano de Dora) | Medio |
+| ✅ | **Segunda cámara cenital** (0.12.0: `CAMARA_EXTRA`) | La cámara de la AD5M ve la pieza de lado; los defectos superiores de piezas pequeñas no se ven (caso de la mano de Dora) | Medio |
 | 🟡 | **Revisión antes de imprimir**: foto de la cama vacía y aviso si hay restos | Muchos fallos de primera capa vienen de una cama sucia | Bajo |
 | 🟡 | **Contexto del modelo**: pasar a Claude la miniatura de la pieza (`/getThum` de Flashforge) | Saber qué forma debería tener la pieza mejora mucho el diagnóstico | Bajo |
 | 🟢 | **Zona de la pieza automática**: calcular `ZOOM_REGION` comparando con la cama vacía | No tener que ajustarla a mano | Medio |
