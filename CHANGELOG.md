@@ -2,6 +2,14 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.10.0: agentes en Claude Platform
+- Nuevo repo **[vigia-agentes](https://github.com/rexcacayo/vigia-agentes)**: agentes, entorno
+  y skills como código (`ant apply` desde la CI) y skills publicadas como artefactos OCI.
+- Con `ANALISTA=true`, al terminar cada impresión el vigía envía fotos (con su capa),
+  perfil, casos, informe y **capacidades de la máquina** al *analista de proceso*, y
+  manda su análisis por Telegram. El agente propone lo aprendido por PR.
+- `/fichas`: el *agente de filamento* consolida las fichas (por PR).
+
 ## 0.9.0: el vigía conoce el perfil del laminado
 - **`skills/ad5m-slicer-engineer/`**: el proyecto «AD5M Pro Slicer Engineer» de Claude
   Desktop convertido en skill del repo. Modo A: generar la tríada de perfiles de Orca;

@@ -20,3 +20,5 @@ jobs:
         run: python -m tests.simulacion
       - name: Adaptador Anycubic
         run: python -m tests.anycubic
+      - name: Agentes de Claude Platform
+        run: python -m tests.plataforma

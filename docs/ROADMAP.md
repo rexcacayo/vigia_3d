@@ -29,7 +29,8 @@ Checklist de la prueba completa: [PRUEBA_REAL.md](PRUEBA_REAL.md).
 | 1. Leer el perfil del `.3mf` laminado y usarlo en diagnóstico e informe | ✅ 0.9.0 |
 | 2. Imagen **esperada**: renderizar la pieza hasta la capa actual desde el ángulo de la cámara | 🔜 |
 | 3. Comparar esperada contra real en el diagnóstico | 🔜 |
-| 4. Agentes en Claude Platform definidos en el repo (`agents/`), publicados por CI: analista de proceso y agente de filamento | 🔜 |
+| 4. Agentes en Claude Platform como código ([vigia-agentes](https://github.com/rexcacayo/vigia-agentes)), publicados por CI: analista de proceso y agente de filamento | 🧪 0.10.0, pendiente del primer despliegue |
+| 5. El vigía consume las skills desde `vigia-agentes` (OCI, `skills.lock.json`) en vez de su copia en `skill/` | 🔜 |
 
 ## 1. Calidad del diagnóstico
 

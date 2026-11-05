@@ -103,3 +103,16 @@ FILAMENTO = os.getenv("FILAMENTO", "").strip()
 # Carpeta donde guardas los .3mf laminados (Orca → Exportar). Vacía = no leer el perfil.
 DIR_LAMINADOS = Path(os.getenv("DIR_LAMINADOS")) if os.getenv("DIR_LAMINADOS", "").strip() else None
 DIR_SKILLS = RAIZ / "skills"
+
+# Agentes de Claude Platform (repo vigia-agentes). ANALISTA=true para usarlos.
+ANALISTA = _bool("ANALISTA")
+REPO_AGENTES = os.getenv("REPO_AGENTES", "https://github.com/rexcacayo/vigia-agentes")
+AGENTES_LOCK_URL = os.getenv(
+    "AGENTES_LOCK_URL", "https://raw.githubusercontent.com/rexcacayo/vigia-agentes/main/claude-lock.json")
+AGENTE_ANALISTA_ID = os.getenv("AGENTE_ANALISTA_ID", "").strip()    # vacío = del lockfile
+AGENTE_FILAMENTO_ID = os.getenv("AGENTE_FILAMENTO_ID", "").strip()
+ENTORNO_AGENTES_ID = os.getenv("ENTORNO_AGENTES_ID", "").strip()
+VAULT_AGENTES = os.getenv("VAULT_AGENTES", "").strip()              # vlt_... (scripts/crear_vault.py)
+GITHUB_TOKEN_AGENTES = os.getenv("GITHUB_TOKEN_AGENTES", "").strip()  # para que el agente abra PRs
+ANALISTA_PRESUPUESTO_CENT = int(os.getenv("ANALISTA_PRESUPUESTO_CENT", "150"))  # tope por sesión
+ANALISTA_TIMEOUT_MIN = int(os.getenv("ANALISTA_TIMEOUT_MIN", "30"))

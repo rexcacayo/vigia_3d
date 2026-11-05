@@ -12,6 +12,7 @@ from . import config as C
 from .maquina import P
 from . import filamentos as F
 from . import perfil as PF
+from . import plataforma as PL
 from . import vision as V
 from .correcciones import Motor
 from .telegram import Bot, esc
@@ -32,6 +33,7 @@ AYUDA = (
     "/informe – informe con recomendaciones de perfil\n"
     "/coste – lo que lleva gastado en Claude esta impresión\n"
     "/filamento [nombre] – ver o elegir el filamento cargado\n"
+    "/fichas – que el agente de la plataforma consolide las fichas de filamento\n"
     "También puedes escribirme cualquier pregunta sobre la impresión."
 )
 
@@ -512,6 +514,9 @@ class Vigia:
             n = F.anotar(fid, cab, F.extraer_lecciones(texto))
             if n:
                 self.bot.texto(f"🧵 Añadido a la ficha <b>{esc(fid)}</b>: {n} lección(es).")
+        if PL.activo():
+            self._lanzar_agente("🔬 <b>Análisis de proceso</b>", nombre.replace(".md", "_analisis.md"),
+                                lambda: PL.analizar_impresion(t, texto))
 
     # ================================================================ Telegram
     def comando(self, cmd: str, arg: str) -> None:
@@ -544,6 +549,11 @@ class Vigia:
                     self.bot.texto(f"Modo de correcciones: <b>{arg}</b>")
                 else:
                     self.bot.texto(f"Modo actual: <b>{C.CORRECCION_MODO}</b>. Usa /modo off|proponer|auto")
+            elif cmd == "fichas":
+                if not PL.activo():
+                    self.bot.texto("Los agentes de la plataforma están desactivados (ANALISTA=false).")
+                else:
+                    self._lanzar_agente("🧵 <b>Consolidación de fichas</b>", None, PL.consolidar_fichas)
             elif cmd == "filamento":
                 self._cmd_filamento(arg)
             elif cmd == "coste":
@@ -618,6 +628,24 @@ class Vigia:
             self.bot.texto("💶 Presupuesto diario agotado: hoy no puedo consultar a Claude.")
         except Exception as ex:  # noqa: BLE001
             self.bot.texto(f"⚠️ No pude mirar la impresión: {esc(ex)}")
+
+    def _lanzar_agente(self, titulo: str, guardar_como: str | None, tarea) -> None:
+        """Ejecuta una sesión de un agente de la plataforma en segundo plano."""
+        self.bot.texto(f"{titulo}: lo he enviado al agente de Claude Platform; tarda unos minutos.")
+
+        def trabajo() -> None:
+            try:
+                sesion, texto = tarea()
+            except Exception as ex:  # noqa: BLE001
+                log.exception("Agente de la plataforma")
+                self.bot.texto(f"⚠️ {titulo}: el agente falló ({esc(ex)}).")
+                return
+            if guardar_como and texto:
+                (C.DIR_CASOS / "informes" / guardar_como).write_text(texto, encoding="utf-8")
+            cuerpo = md_a_telegram(texto) if texto else "El agente terminó sin dejar análisis."
+            self.bot.texto(f"{titulo}\n\n{cuerpo}\n\n<i>Sesión {esc(sesion)} · los PRs, en vigia-agentes</i>")
+
+        threading.Thread(target=trabajo, daemon=True, name="agente").start()
 
     def _cmd_filamento(self, arg: str) -> None:
         arg = (arg or "").strip()
