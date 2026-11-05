@@ -238,12 +238,22 @@ def main() -> None:
     import base64 as _b64
     comprobar(_b64.b64encode(EXTRA).decode() in json.dumps(LLAMADAS[-1]["messages"]),
               "el diagnóstico recibe la vista superior")
-    comprobar(any(f.name.endswith("_extra.jpg") for f in TMP.glob("*.jpg")), "se guarda junto al caso")
+    comprobar(any(f.name.endswith("_superior.jpg") for f in TMP.glob("*.jpg")), "se guarda junto al caso")
     v.comando("foto", "")
     comprobar(any("Vista superior" in e[1] for e in ENVIADOS[n:]), "/foto envía las dos vistas")
     CX.subprocess.run = lambda orden, **kw: __import__("types").SimpleNamespace(stdout=b"", stderr=b"sin camara", returncode=1)
-    comprobar(CX.capturar() is None, "si la cámara extra falla, el vigía sigue sin ella")
+    comprobar(CX.capturar_todas() == {}, "si la cámara extra falla, el vigía sigue sin ella")
     C.CAMARA_EXTRA = ""
+    C.CAMARAS_EXTRA = "superior=picam, frontal=/dev/video0, cama=http://pi:8081/foto.jpg"
+    CX.subprocess.run = lambda orden, **kw: __import__("types").SimpleNamespace(stdout=EXTRA, stderr=b"", returncode=0)
+    CX._url = lambda c: EXTRA
+    fotos = CX.capturar_todas()
+    comprobar(list(fotos) == ["superior", "frontal", "cama"], "varias cámaras a la vez: Pi, USB y URL")
+    v.ultimo_diag_ts, v.alerta_hasta = 0, 0
+    ciclo(SOSPECHA, OK)
+    textos = json.dumps(LLAMADAS[-1]["messages"], ensure_ascii=False)
+    comprobar(all(f"Vista «{n}»" in textos for n in fotos), "el diagnóstico recibe todas las vistas")
+    C.CAMARAS_EXTRA = ""
 
     print("Robustez:")
     # candado de cámara: dos capturas simultáneas nunca se solapan

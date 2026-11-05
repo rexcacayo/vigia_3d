@@ -27,7 +27,10 @@ def _bool(nombre: str, defecto: str = "false") -> bool:
 PRINTER_TIPO = os.getenv("PRINTER_TIPO", "flashforge").strip().lower()
 PRINTER_IP = os.getenv("PRINTER_IP", "")
 
-# Cámara extra (segunda vista para el diagnóstico): vacío | picam | /dev/video0 | http(s)://…
+# Cámaras extra (más vistas para el diagnóstico). Ver vigia/camara_extra.py:
+#   CAMARAS_EXTRA=superior=picam, frontal=/dev/v4l/by-id/usb-…-video-index0
+# CAMARA_EXTRA=<fuente> (una sola) sigue valiendo: equivale a superior=<fuente>.
+CAMARAS_EXTRA = os.getenv("CAMARAS_EXTRA", "").strip()
 CAMARA_EXTRA = os.getenv("CAMARA_EXTRA", "").strip()
 CAMARA_EXTRA_RESOLUCION = os.getenv("CAMARA_EXTRA_RESOLUCION", "1280x960").strip()
 CAMARA_EXTRA_ENFOQUE = os.getenv("CAMARA_EXTRA_ENFOQUE", "").strip()  # picam Module 3: dioptrías

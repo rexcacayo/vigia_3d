@@ -85,7 +85,7 @@ class Vigia:
         self.historial: deque[bytes] = deque(maxlen=3)
         self.capas_hist: deque = deque(maxlen=3)  # capa de cada fotograma del historial
         self.pausa_usuario = False  # pausa pedida por el usuario (no hay que avisar)
-        self.ultimo_extra: bytes | None = None  # última foto de la cámara extra
+        self.ultimo_extra: dict[str, bytes] = {}  # última foto de cada cámara extra
         self.estado: dict = {}
         self.ultimo_jpeg: bytes | None = None
         self.ultimo_diag: dict = {}
@@ -136,8 +136,8 @@ class Vigia:
     def _guardar_caso(self, jpeg: bytes, e: dict, diag: dict, clase: str) -> str:
         cid = datetime.now().strftime("%Y%m%d-%H%M%S")
         (C.DIR_CASOS / f"{cid}.jpg").write_bytes(jpeg)
-        if self.ultimo_extra:
-            (C.DIR_CASOS / f"{cid}_extra.jpg").write_bytes(self.ultimo_extra)
+        for nombre, foto in (self.ultimo_extra or {}).items():
+            (C.DIR_CASOS / f"{cid}_{nombre}.jpg").write_bytes(foto)
         reg = {"id": cid, "clase": clase, "estado": e, "diagnostico": diag}
         with (C.DIR_CASOS / "casos.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps(reg, ensure_ascii=False) + "\n")
@@ -251,7 +251,7 @@ class Vigia:
                 self.aviso_camara = True
             return
 
-        extra = CX.capturar() if CX.activa() else None
+        extra = CX.capturar_todas()
 
         with self.lock:
             self.ultimo_extra = extra
@@ -546,11 +546,11 @@ class Vigia:
             elif cmd == "foto":
                 self.bot.foto(P.capturar(), self._texto_estado(P.estado()))
                 if CX.activa():
-                    self.ultimo_extra = CX.capturar() or self.ultimo_extra
+                    self.ultimo_extra = CX.capturar_todas() or self.ultimo_extra
                     self._foto_extra()
             elif cmd == "parte":
                 e, j = P.estado(), P.capturar()
-                x = CX.capturar() if CX.activa() else None
+                x = CX.capturar_todas()
                 with self.lock:
                     self.ultimo_extra = x
                     self.historial.append(j)
@@ -656,9 +656,9 @@ class Vigia:
             self.bot.texto(f"⚠️ No pude mirar la impresión: {esc(ex)}")
 
     def _foto_extra(self) -> None:
-        """Envía la última vista de la cámara extra, si la hay."""
-        if self.ultimo_extra:
-            self.bot.foto(self.ultimo_extra, "🔭 Vista superior (cámara extra)")
+        """Envía la última vista de cada cámara extra."""
+        for nombre, foto in (self.ultimo_extra or {}).items():
+            self.bot.foto(foto, f"🔭 Vista {esc(nombre)}")
 
     def _cmd_analizar(self) -> None:
         """Manda al analista de la plataforma la última impresión con informe guardado."""

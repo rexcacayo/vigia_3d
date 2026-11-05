@@ -75,9 +75,8 @@ def elegir_fotos(casos: list[dict]) -> list[tuple[str, Path]]:
         capa = c.get("capa") or 0
         nombre = f"c{int(capa):04d}_{c.get('clase')}_{c['id']}"
         fotos.append((f"{nombre}.jpg", C.DIR_CASOS / f"{c['id']}.jpg"))
-        extra = C.DIR_CASOS / f"{c['id']}_extra.jpg"
-        if extra.exists():  # vista superior del mismo momento
-            fotos.append((f"{nombre}_superior.jpg", extra))
+        for extra in sorted(C.DIR_CASOS.glob(f"{c['id']}_*.jpg")):  # otras vistas del mismo momento
+            fotos.append((f"{nombre}_{extra.stem.split('_', 1)[1]}.jpg", extra))
     return fotos
 
 

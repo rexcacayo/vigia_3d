@@ -83,6 +83,7 @@ Escribe `/ayuda` a tu bot. Guía de todas las opciones: [docs/CONFIGURACION.md](
 | [Adaptadores](docs/ADAPTADORES.md) | Soportar otra impresora |
 | [Compatibilidad](docs/COMPATIBILIDAD.md) | Impresoras y comandos de cada API |
 | [Costes](docs/COSTES.md) | Cuánto cuesta por hora y cómo bajarlo |
+| [Raspberry Pi y cámaras](docs/RASPBERRY.md) | Montarlo en una Pi 24/7 con una o varias cámaras |
 | [Prueba real](docs/PRUEBA_REAL.md) | Checklist para validar una versión con la impresora |
 | [Hoja de ruta](docs/ROADMAP.md) | Qué falta por verificar, mejoras y nuevos alcances |
 

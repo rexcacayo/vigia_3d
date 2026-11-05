@@ -2,6 +2,15 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.13.0: Raspberry Pi y varias cámaras
+- **Varias cámaras extra** a la vez (`CAMARAS_EXTRA=superior=picam, frontal=/dev/v4l/by-id/…`),
+  cada una con su resolución, enfoque, ajustes v4l2 y descripción; se capturan en paralelo
+  y el diagnóstico recibe todas las vistas.
+- `python -m vigia.camara_extra --listar`: qué cámaras ve el sistema.
+- **`instalar_pi.sh`**: dependencias, cámara de la Pi, servicio systemd `vigia` con
+  reinicio automático. Guía en [docs/RASPBERRY.md](docs/RASPBERRY.md).
+- `arrancar.sh` admite `VIGIA_SESION` para varias instancias.
+
 ## 0.12.0: cámara extra (vista superior)
 - `CAMARA_EXTRA`: cámara de la Raspberry (`picam`), webcam USB (`/dev/video0`) o URL. El
   diagnóstico recibe la vista superior del mismo momento, se guarda con cada caso, viaja al
