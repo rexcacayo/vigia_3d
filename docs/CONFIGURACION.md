@@ -42,6 +42,7 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 | `ZOOM_REGION` | `0.15,0.2,0.85,0.9` | Zona de la foto (fracciones x0,y0,x1,y1) que se amplía |
 | `FILTRO_CON_ZOOM` | `true` | El filtro mira también la ampliación (más preciso, ~2× su coste) |
 | `DIR_LAMINADOS` | *(vacío)* | Carpeta donde guardas los `.3mf` laminados de Orca. El vigía busca ahí el que imprime la máquina (por nombre), lee su perfil y lo usa en el diagnóstico y en el informe. En WSL, p. ej. `/mnt/c/Users/<usuario>/Documents/laminados` |
+| `SKILLS_OCI` | `true` | Instalar las skills desde GHCR (repo vigia-agentes) por digest al arrancar y en cada impresión. `false` = usar la copia `skill/` del repo |
 | `ANALISTA` | `false` | `true` = al terminar cada impresión, el **agente analista** de Claude Platform (repo [vigia-agentes](https://github.com/rexcacayo/vigia-agentes)) hace el análisis profundo y lo manda por Telegram |
 | `VAULT_AGENTES` | *(vacío)* | ID `vlt_...` del vault con el token de GitHub (lo crea `scripts/crear_vault.py` del repo de agentes) |
 | `GITHUB_TOKEN_AGENTES` | *(vacío)* | Token de grano fino (solo `vigia-agentes`, Contents y Pull requests) para que el agente abra PRs. **Solo en el `.env`** |

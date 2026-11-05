@@ -20,7 +20,7 @@ os.environ.update({
     "TELEGRAM_CHAT_ID": "42", "DIR_CASOS": str(TMP), "CORRECCION_ESPERA_S": "0",
     "INFORME_CADA_MIN": "0", "INTERVALO_S": "90", "INTERVALO_ALERTA_S": "30",
     "CAPAS_RIESGO": "5", "CORRECCION_MODO": "proponer", "PRESUPUESTO_DIA_USD": "2",
-    "DIAS_RETENCION": "30", "DIR_LAMINADOS": str(TMP / "laminados"), "AUTO_PAUSA": "false", "DIAG_ENTRE_SOSPECHAS_S": "0", "RECORDATORIO_PAUSA_MIN": "5",
+    "DIAS_RETENCION": "30", "SKILLS_OCI": "false", "DIR_LAMINADOS": str(TMP / "laminados"), "AUTO_PAUSA": "false", "DIAG_ENTRE_SOSPECHAS_S": "0", "RECORDATORIO_PAUSA_MIN": "5",
 })
 
 from PIL import Image  # noqa: E402
@@ -31,12 +31,7 @@ from vigia import telegram as T  # noqa: E402
 from vigia import vision as V  # noqa: E402
 from vigia.maquina import P  # noqa: E402
 
-# El fichero de aprendizajes real no debe ensuciarse con la prueba
-APRENDIZAJES_REAL = C.FICHERO_APRENDIZAJES
-C.FICHERO_APRENDIZAJES = TMP / "aprendizajes.md"
-shutil.copy(APRENDIZAJES_REAL, C.FICHERO_APRENDIZAJES)
-# Igual con las fichas de filamento
-C.DIR_FILAMENTOS = Path(shutil.copytree(C.DIR_FILAMENTOS, TMP / "filamentos"))
+# Lo aprendido (👎, fichas) va a la capa local, dentro de DIR_CASOS (temporal): el repo no se ensucia
 
 # ---------------------------------------------------------------- dobles de prueba
 _b = io.BytesIO()
@@ -294,7 +289,7 @@ def main() -> None:
     RESPUESTAS.append("## Resumen\nTodo **bien**.\n\n## Para la ficha del filamento\n"
                       "- 245 °C sin hilos con el filamento recién secado")
     v.ciclo_vigilancia()
-    comprobar("245 °C sin hilos" in (C.DIR_FILAMENTOS / "elegoo-petg-rapid.md").read_text(),
+    comprobar("245 °C sin hilos" in F.ficha("elegoo-petg-rapid"),
               "el informe añade lo aprendido al historial de la ficha")
     comprobar(any(f.suffix == ".md" for f in (TMP / "informes").iterdir()), "informe final guardado")
     comprobar("Modo B" in json.dumps(LLAMADAS[-1]["system"], ensure_ascii=False),

@@ -1,8 +1,12 @@
 """Fichas de filamento: lo que se sabe de cada marca/tipo y lo que se aprende al imprimir.
 
-Cada ficha es un Markdown en skill/filamentos/<id>.md. La activa se guarda en
-DIR_CASOS/filamento_actual.txt (se elige con /filamento en Telegram o con FILAMENTO).
-El informe post-mortem añade al final de la ficha lo aprendido en cada impresión.
+Las fichas vienen de la skill vigia-3d (filamentos/<id>.md, instalada desde OCI). Lo que
+el vigía aprende entre publicaciones va a la **capa local** (DIR_FILAMENTOS_LOCAL):
+- <id>.md: fichas nuevas creadas con /filamento nuevo.
+- <id>.historial: líneas de historial añadidas por los informes.
+Al leer una ficha se juntan las dos; lo que ya esté en la skill no se repite. El analista
+de la plataforma recibe la capa local y la propone por PR al repo vigia-agentes.
+La ficha activa se guarda en DIR_CASOS/filamento_actual.txt.
 """
 from __future__ import annotations
 
@@ -26,10 +30,38 @@ def _fichero_actual() -> Path:
     return C.DIR_CASOS / "filamento_actual.txt"
 
 
+def _de_skill(fid: str) -> Path:
+    return C.DIR_FILAMENTOS / f"{fid}.md"
+
+
+def _local(fid: str) -> Path:
+    return C.DIR_FILAMENTOS_LOCAL / f"{fid}.md"
+
+
+def _historial_local(fid: str) -> Path:
+    return C.DIR_FILAMENTOS_LOCAL / f"{fid}.historial"
+
+
 def lista() -> list[str]:
-    if not C.DIR_FILAMENTOS.exists():
+    nombres = set()
+    for d in (C.DIR_FILAMENTOS, C.DIR_FILAMENTOS_LOCAL):
+        if d.exists():
+            nombres |= {f.stem for f in d.glob("*.md") if not f.stem.startswith("_")}
+    return sorted(nombres)
+
+
+def es_nueva(fid: str) -> bool:
+    """La ficha solo existe en la capa local (aún no está en la skill publicada)."""
+    return not _de_skill(fid).exists() and _local(fid).exists()
+
+
+def lineas_locales(fid: str) -> list[str]:
+    """Historial local que todavía no ha llegado a la skill publicada."""
+    f = _historial_local(fid)
+    if not f.exists():
         return []
-    return sorted(f.stem for f in C.DIR_FILAMENTOS.glob("*.md") if not f.stem.startswith("_"))
+    base = _de_skill(fid).read_text(encoding="utf-8") if _de_skill(fid).exists() else ""
+    return [l for l in f.read_text(encoding="utf-8").splitlines() if l.startswith("- ") and l not in base]
 
 
 def buscar(nombre: str) -> str | None:
@@ -65,10 +97,13 @@ def fijar(nombre: str) -> str | None:
 def crear(nombre: str) -> str:
     """Crea una ficha nueva desde la plantilla y la deja activa."""
     fid = _slug(nombre)
-    destino = C.DIR_FILAMENTOS / f"{fid}.md"
-    if not destino.exists():
-        plantilla = (C.DIR_FILAMENTOS / "_plantilla.md").read_text(encoding="utf-8")
-        destino.write_text(plantilla.replace("{{NOMBRE}}", nombre.strip()), encoding="utf-8")
+    if not (_de_skill(fid).exists() or _local(fid).exists()):
+        plantilla = C.DIR_FILAMENTOS / "_plantilla.md"
+        if not plantilla.exists():
+            plantilla = C.DIR_SKILL_RESPALDO / "filamentos" / "_plantilla.md"
+        C.DIR_FILAMENTOS_LOCAL.mkdir(parents=True, exist_ok=True)
+        _local(fid).write_text(plantilla.read_text(encoding="utf-8").replace("{{NOMBRE}}", nombre.strip()),
+                               encoding="utf-8")
     fijar(fid)
     return fid
 
@@ -77,10 +112,15 @@ def ficha(fid: str | None = None) -> str:
     fid = fid or actual()
     if not fid:
         return ""
-    f = C.DIR_FILAMENTOS / f"{fid}.md"
+    f = _de_skill(fid) if _de_skill(fid).exists() else _local(fid)
     if not f.exists():
         return ""
-    texto = f.read_text(encoding="utf-8")
+    texto = f.read_text(encoding="utf-8").rstrip("\n")
+    locales = lineas_locales(fid)
+    if locales:
+        if SECCION_HISTORIAL not in texto:
+            texto += f"\n\n{SECCION_HISTORIAL}\n"
+        texto += "\n" + "\n".join(locales) + "\n"
     # Solo las últimas entradas del historial: lo reciente es lo que más vale.
     if SECCION_HISTORIAL in texto:
         cabeza, hist = texto.split(SECCION_HISTORIAL, 1)
@@ -90,16 +130,14 @@ def ficha(fid: str | None = None) -> str:
 
 
 def anotar(fid: str, cabecera: str, lecciones: list[str]) -> int:
-    """Añade al historial de la ficha las lecciones de una impresión. Devuelve cuántas."""
-    f = C.DIR_FILAMENTOS / f"{fid}.md"
-    if not f.exists() or not lecciones:
+    """Añade al historial (capa local) las lecciones de una impresión. Devuelve cuántas."""
+    if not (_de_skill(fid).exists() or _local(fid).exists()) or not lecciones:
         return 0
-    texto = f.read_text(encoding="utf-8").rstrip("\n")
-    if SECCION_HISTORIAL not in texto:
-        texto += f"\n\n{SECCION_HISTORIAL}\n"
     fecha = f"{datetime.now():%Y-%m-%d}"
     nuevas = [f"- {fecha} · {cabecera}: {l.strip().lstrip('-•* ').strip()}" for l in lecciones if l.strip()]
-    f.write_text(texto + "\n" + "\n".join(nuevas) + "\n", encoding="utf-8")
+    C.DIR_FILAMENTOS_LOCAL.mkdir(parents=True, exist_ok=True)
+    with _historial_local(fid).open("a", encoding="utf-8") as f:
+        f.write("\n".join(nuevas) + "\n")
     return len(nuevas)
 
 

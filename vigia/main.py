@@ -12,6 +12,7 @@ import anthropic
 from . import config as C
 from .maquina import P
 from . import filamentos as F
+from . import conocimiento as CO
 from . import perfil as PF
 from . import plataforma as PL
 from . import vision as V
@@ -115,6 +116,10 @@ class Vigia:
                         "casos": [], "correcciones": [], "feedback": []}
         self.motor.reset()
         V.contador.reset()
+        try:
+            CO.sincronizar()  # cada impresión arranca con la última versión publicada de las skills
+        except Exception as ex:  # noqa: BLE001
+            log.warning("No pude sincronizar las skills: %s", ex)
         self._limpiar_casos()
         self.historial.clear()
         self.capas_hist.clear()
@@ -493,6 +498,7 @@ class Vigia:
         t["estado_final"] = e.get("maquina")
         t["duracion"] = _hm(e.get("tiempo_impresion_s") or 0)
         t["coste_vigilancia"] = V.contador.resumen()
+        t["pendiente_de_publicar"] = CO.pendiente_de_publicar(t.get("filamento"))
         self.bot.texto(f"🏁 Impresión terminada ({esc(e.get('maquina'))}): <b>{esc(t['fichero'])}</b>\n"
                        f"Preparando el informe…")
         self._informe(t)
@@ -713,6 +719,7 @@ class Vigia:
         log.info("Vigía arrancado — %s · cada %ss (riesgo: %ss) · correcciones: %s",
                  P.NOMBRE, C.INTERVALO, C.INTERVALO_ALERTA, C.CORRECCION_MODO)
         self._limpiar_casos()
+        CO.sincronizar()
         self.bot.escuchar()
         self.bot.texto("🤖 Vigía en marcha. /ayuda para ver lo que puedo hacer.")
         while True:

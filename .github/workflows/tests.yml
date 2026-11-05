@@ -22,3 +22,5 @@ jobs:
         run: python -m tests.anycubic
       - name: Agentes de Claude Platform
         run: python -m tests.plataforma
+      - name: Skills OCI y capa local
+        run: python -m tests.conocimiento

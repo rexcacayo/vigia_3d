@@ -10,6 +10,7 @@ import anthropic
 from PIL import Image
 
 from . import config as C
+from . import conocimiento as CO
 from . import filamentos as F
 from . import perfil as PF
 from .maquina import P
@@ -155,7 +156,7 @@ def sistema_diagnostico() -> str:
            + fil) if fil else ""
     partes = [_leer("SKILL.md"), P.DESCRIPCION, _leer("materiales.md"), fil, _leer("correcciones.md"),
               f"Acciones que admite ESTA impresora: {', '.join(TIPOS_ACCION)}.",
-              _leer("aprendizajes.md"), formato]
+              CO.aprendizajes(), formato]
     return "\n\n---\n\n".join(p for p in partes if p)
 
 
@@ -273,7 +274,7 @@ No inventes datos que no estén en el registro. Si todo fue bien, dilo y sé bre
 
 
 def _skill_slicer() -> str:
-    f = C.DIR_SKILLS / "ad5m-slicer-engineer" / "SKILL.md"
+    f = C.DIR_SLICER / "SKILL.md"
     if not f.exists():
         return ""
     texto = f.read_text(encoding="utf-8")

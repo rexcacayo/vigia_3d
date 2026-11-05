@@ -2,6 +2,16 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.11.0: una sola fuente de verdad para las skills
+- El vigía **instala sus skills desde GHCR** (artefactos OCI publicados por `vigia-agentes`)
+  por digest, al arrancar y al empezar cada impresión: `skills.json` declara cuáles y
+  `.skills/skills.lock.json` registra la versión exacta en uso. Sin red, sigue con lo
+  instalado o con la copia `skill/` de respaldo.
+- **Capa local** (`DIR_CASOS/aprendido/`): 👎, historial de fichas y fichas nuevas se
+  guardan aquí, se suman a la skill al leerla y viajan al analista, que los propone por PR.
+  Al publicarse, dejan de duplicarse. La primera vez se rescata lo aprendido en `skill/`.
+- Orden `/analizar` (0.10.1): análisis de la última impresión por el agente, en Telegram.
+
 ## 0.10.0: agentes en Claude Platform
 - Nuevo repo **[vigia-agentes](https://github.com/rexcacayo/vigia-agentes)**: agentes, entorno
   y skills como código (`ant apply` desde la CI) y skills publicadas como artefactos OCI.

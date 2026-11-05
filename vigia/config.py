@@ -95,14 +95,41 @@ DIAS_RETENCION = int(os.getenv("DIAS_RETENCION", "30"))
 # Ficheros
 DIR_CASOS = Path(os.getenv("DIR_CASOS", str(RAIZ / "casos")))
 DIR_CASOS.mkdir(parents=True, exist_ok=True)
-DIR_SKILL = RAIZ / "skill"
-FICHERO_APRENDIZAJES = DIR_SKILL / "aprendizajes.md"
+# Skills: se instalan desde el registro OCI (repo vigia-agentes) en .skills/; si no hay
+# ninguna instalada se usa la copia de respaldo del repo (skill/ y skills/).
+DIR_SKILL_RESPALDO = RAIZ / "skill"
+DIR_SKILLS_RESPALDO = RAIZ / "skills"
+DIR_SKILL = DIR_SKILL_RESPALDO                       # skill vigia-3d en uso
+DIR_SLICER = DIR_SKILLS_RESPALDO / "ad5m-slicer-engineer"
 # Fichas de filamento (marca + tipo). La activa se elige con /filamento o con FILAMENTO.
 DIR_FILAMENTOS = DIR_SKILL / "filamentos"
+# Capa local: lo que el vigía aprende entre publicaciones (👎, historial de fichas, fichas
+# nuevas). Se suma a la skill al leerla y viaja al analista para que lo proponga por PR.
+DIR_LOCAL = DIR_CASOS / "aprendido"
+DIR_LOCAL.mkdir(parents=True, exist_ok=True)
+FICHERO_APRENDIZAJES = DIR_LOCAL / "aprendizajes.md"
+DIR_FILAMENTOS_LOCAL = DIR_LOCAL / "filamentos"
 FILAMENTO = os.getenv("FILAMENTO", "").strip()
 # Carpeta donde guardas los .3mf laminados (Orca → Exportar). Vacía = no leer el perfil.
 DIR_LAMINADOS = Path(os.getenv("DIR_LAMINADOS")) if os.getenv("DIR_LAMINADOS", "").strip() else None
-DIR_SKILLS = RAIZ / "skills"
+
+
+SKILLS_OCI = _bool("SKILLS_OCI", "true")  # false = usar solo la copia skill/ del repo
+
+
+def recargar_skills() -> None:
+    """Apunta a las skills instaladas desde OCI (o al respaldo si no hay)."""
+    global DIR_SKILL, DIR_SLICER, DIR_FILAMENTOS
+    from . import skills_oci
+    if SKILLS_OCI:
+        DIR_SKILL = skills_oci.ruta("vigia-3d", DIR_SKILL_RESPALDO)
+        DIR_SLICER = skills_oci.ruta("ad5m-slicer-engineer", DIR_SKILLS_RESPALDO / "ad5m-slicer-engineer")
+    else:
+        DIR_SKILL, DIR_SLICER = DIR_SKILL_RESPALDO, DIR_SKILLS_RESPALDO / "ad5m-slicer-engineer"
+    DIR_FILAMENTOS = DIR_SKILL / "filamentos"
+
+
+recargar_skills()
 
 # Agentes de Claude Platform (repo vigia-agentes). ANALISTA=true para usarlos.
 ANALISTA = _bool("ANALISTA")

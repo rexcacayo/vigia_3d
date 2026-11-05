@@ -22,6 +22,9 @@ vigia_3d/
 │   ├── correcciones.py        ← reglas que validan/aplican/revierten correcciones
 │   ├── telegram.py            ← bot: envío con botones y escucha de órdenes
 │   ├── perfil.py              ← lee el perfil de Orca del .3mf que se imprime
+│   ├── skills_oci.py          ← instala skills desde GHCR por digest (Agent Skills as OCI Artifacts)
+│   ├── conocimiento.py        ← skills publicadas + capa local de lo aprendido
+│   ├── plataforma.py          ← sesiones con los agentes de Claude Platform
 │   ├── filamentos.py          ← fichas de filamento: activa, lectura, historial aprendido
 │   ├── probar.py              ← verificador de adaptadores (solo lectura)
 │   └── impresoras/            ← adaptadores (uno por familia de impresoras)
@@ -29,7 +32,9 @@ vigia_3d/
 │       ├── flashforge.py      ← Flashforge AD5M / AD5M Pro (firmware de serie)
 │       └── plantilla.py       ← punto de partida para un adaptador nuevo
 │
-├── skill/                     ← el CONOCIMIENTO (Markdown, se relee en cada diagnóstico)
+├── skills.json                ← qué skills usa el vigía (OCI, publicadas por el repo vigia-agentes)
+├── .skills/                   ← skills instaladas + skills.lock.json (no se versiona)
+├── skill/                     ← copia de RESPALDO de la skill vigia-3d (si no hay registro)
 │   ├── SKILL.md               ← rol, cómo razonar, gravedades
 │   ├── materiales.md          ← qué es normal y qué vigilar por material
 │   ├── correcciones.md        ← lista blanca de acciones y cuándo proponerlas

@@ -1,0 +1,8 @@
+{
+  "$comentario": "Skills que usa el vigía. Se publican desde el repo vigia-agentes (OCI). Lock en .skills/skills.lock.json",
+  "skills": {
+    "vigia-3d": "ghcr.io/rexcacayo/vigia-skills/vigia-3d:latest",
+    "ad5m-slicer-engineer": "ghcr.io/rexcacayo/vigia-skills/ad5m-slicer-engineer:latest",
+    "impresoras-3d": "ghcr.io/rexcacayo/vigia-skills/impresoras-3d:latest"
+  }
+}
