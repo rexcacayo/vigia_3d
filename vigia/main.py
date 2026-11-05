@@ -1,6 +1,7 @@
 """Vigía de impresión: bucle principal + órdenes por Telegram."""
 import json
 import logging
+import re
 import threading
 import time
 from collections import deque
@@ -33,6 +34,7 @@ AYUDA = (
     "/informe – informe con recomendaciones de perfil\n"
     "/coste – lo que lleva gastado en Claude esta impresión\n"
     "/filamento [nombre] – ver o elegir el filamento cargado\n"
+    "/analizar – análisis profundo de la última impresión (agente de la plataforma)\n"
     "/fichas – que el agente de la plataforma consolide las fichas de filamento\n"
     "También puedes escribirme cualquier pregunta sobre la impresión."
 )
@@ -549,6 +551,8 @@ class Vigia:
                     self.bot.texto(f"Modo de correcciones: <b>{arg}</b>")
                 else:
                     self.bot.texto(f"Modo actual: <b>{C.CORRECCION_MODO}</b>. Usa /modo off|proponer|auto")
+            elif cmd == "analizar":
+                self._cmd_analizar()
             elif cmd == "fichas":
                 if not PL.activo():
                     self.bot.texto("Los agentes de la plataforma están desactivados (ANALISTA=false).")
@@ -628,6 +632,29 @@ class Vigia:
             self.bot.texto("💶 Presupuesto diario agotado: hoy no puedo consultar a Claude.")
         except Exception as ex:  # noqa: BLE001
             self.bot.texto(f"⚠️ No pude mirar la impresión: {esc(ex)}")
+
+    def _cmd_analizar(self) -> None:
+        """Manda al analista de la plataforma la última impresión con informe guardado."""
+        if not PL.activo():
+            self.bot.texto("Los agentes de la plataforma están desactivados (ANALISTA=true en el .env).")
+            return
+        carpeta = C.DIR_CASOS / "informes"
+        informes = sorted(f for f in carpeta.glob("*.md") if not f.stem.endswith("_analisis")) \
+            if carpeta.exists() else []
+        if not informes:
+            self.bot.texto("Aún no hay ninguna impresión terminada con informe.")
+            return
+        f = informes[-1]
+        texto = f.read_text(encoding="utf-8")
+        m = re.search(r"```json\n(.*)\n```", texto, re.S)
+        if not m:
+            self.bot.texto(f"El informe {esc(f.name)} no trae el registro de la impresión.")
+            return
+        registro = json.loads(m.group(1))
+        informe = texto.split("\n---\n")[0]
+        self._lanzar_agente(f"🔬 <b>Análisis de proceso</b> · {esc(registro.get('fichero') or f.stem)}",
+                            f.name.replace(".md", "_analisis.md"),
+                            lambda: PL.analizar_impresion(registro, informe))
 
     def _lanzar_agente(self, titulo: str, guardar_como: str | None, tarea) -> None:
         """Ejecuta una sesión de un agente de la plataforma en segundo plano."""
