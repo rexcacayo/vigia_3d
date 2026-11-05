@@ -23,6 +23,14 @@ Checklist de la prueba completa: [PRUEBA_REAL.md](PRUEBA_REAL.md).
 
 ---
 
+## Plan en curso: proceso de impresión «foto contra perfil»
+| Paso | Estado |
+|---|---|
+| 1. Leer el perfil del `.3mf` laminado y usarlo en diagnóstico e informe | ✅ 0.9.0 |
+| 2. Imagen **esperada**: renderizar la pieza hasta la capa actual desde el ángulo de la cámara | 🔜 |
+| 3. Comparar esperada contra real en el diagnóstico | 🔜 |
+| 4. Agentes en Claude Platform definidos en el repo (`agents/`), publicados por CI: analista de proceso y agente de filamento | 🔜 |
+
 ## 1. Calidad del diagnóstico
 
 | | Mejora | Por qué | Esfuerzo |

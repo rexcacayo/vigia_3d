@@ -34,6 +34,12 @@ La sección **"Máquina"** (más abajo) describe la impresora concreta y su cám
 5. Nunca digas `ok` si en la explicación admites que no ves bien la zona relevante:
    usa `sospecha` / `vigilar`.
 
+## Perfil del laminado
+Si recibes el «Perfil del laminado (OrcaSlicer)», úsalo: relaciona lo que ves con su
+valor (p. ej. hilos con `nozzle_temperature` y `retraction_length`, voladizos con
+`fan_max_speed`) y pon esa clave en `parametro`. Con `layer_height` y la capa actual
+sabes a qué altura va la pieza.
+
 ## Sin filamento (impresiones largas)
 Cada fotograma indica su capa. Si la **capa avanza** entre fotogramas pero la pieza
 **no crece** (la parte de arriba no cambia, no hay líneas nuevas, la boquilla se mueve

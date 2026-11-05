@@ -2,6 +2,14 @@
 
 Lo que viene: ver [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## 0.9.0: el vigía conoce el perfil del laminado
+- **`skills/ad5m-slicer-engineer/`**: el proyecto «AD5M Pro Slicer Engineer» de Claude
+  Desktop convertido en skill del repo. Modo A: generar la tríada de perfiles de Orca;
+  modo B: analizar una impresión cruzando fotos y perfil.
+- **Lectura del perfil** del `.3mf` que imprime la máquina (`DIR_LAMINADOS`):
+  temperaturas, velocidades, ventilador, retracción, capa… El diagnóstico lo recibe y el
+  informe final incluye veredicto y tabla «clave · actual · propuesto · motivo · evidencia».
+
 ## 0.8.0: Anycubic Kobra 3 y falta de filamento
 - **Adaptador `anycubic`** para Kobra 3 / 3 Max / 3 V2 / S1 / S1 Max por su protocolo
   LAN (MQTT con TLS en la impresora, sin nube): estado, pausar, reanudar, luz y foto.

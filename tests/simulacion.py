@@ -20,7 +20,7 @@ os.environ.update({
     "TELEGRAM_CHAT_ID": "42", "DIR_CASOS": str(TMP), "CORRECCION_ESPERA_S": "0",
     "INFORME_CADA_MIN": "0", "INTERVALO_S": "90", "INTERVALO_ALERTA_S": "30",
     "CAPAS_RIESGO": "5", "CORRECCION_MODO": "proponer", "PRESUPUESTO_DIA_USD": "2",
-    "DIAS_RETENCION": "30", "AUTO_PAUSA": "false", "DIAG_ENTRE_SOSPECHAS_S": "0", "RECORDATORIO_PAUSA_MIN": "5",
+    "DIAS_RETENCION": "30", "DIR_LAMINADOS": str(TMP / "laminados"), "AUTO_PAUSA": "false", "DIAG_ENTRE_SOSPECHAS_S": "0", "RECORDATORIO_PAUSA_MIN": "5",
 })
 
 from PIL import Image  # noqa: E402
@@ -69,8 +69,12 @@ T.Bot._post = lambda self, metodo, **kw: ENVIADOS.append(
 ) or {"message_id": 1, "chat": {"id": 42}}
 
 
+LLAMADAS: list = []
+
+
 class _Mensajes:
     def create(self, **kw):
+        LLAMADAS.append(kw)
         r = RESPUESTAS.pop(0)
         uso = types.SimpleNamespace(input_tokens=1500, output_tokens=100,
                                     cache_creation_input_tokens=0, cache_read_input_tokens=0)
@@ -97,7 +101,18 @@ def comprobar(cond: bool, texto: str) -> None:
         raise SystemExit(1)
 
 
+def _laminado() -> None:
+    """Un .3mf como el de OrcaSlicer, con su project_settings.config."""
+    import zipfile
+    (TMP / "laminados").mkdir(exist_ok=True)
+    ajustes = {"layer_height": "0.2", "nozzle_temperature": ["245"], "fan_max_speed": ["40"],
+               "retraction_length": ["0.8"], "filament_settings_id": ["Generic PETG"]}
+    with zipfile.ZipFile(TMP / "laminados" / "pieza_PETG_5h.gcode.3mf", "w") as z:
+        z.writestr("Metadata/project_settings.config", json.dumps(ajustes))
+
+
 def main() -> None:
+    _laminado()
     v = M.Vigia()
 
     def ciclo(*resp):
@@ -108,6 +123,10 @@ def main() -> None:
     ciclo(SOSPECHA, LENTO)
     comprobar(any("Empiezo a vigilar" in e[1] for e in ENVIADOS), "detecta la impresión y avisa")
     comprobar(not v.motor.pendientes, "la primera propuesta solo se anota (persistencia)")
+    comprobar(v.trabajo["perfil"]["temperaturas"]["nozzle_temperature"] == "245",
+              "lee el perfil del .3mf laminado (DIR_LAMINADOS)")
+    comprobar("fan_max_speed" in json.dumps(LLAMADAS[-1]["messages"], ensure_ascii=False),
+              "el diagnóstico recibe el perfil")
 
     ciclo(SOSPECHA, LENTO)
     comprobar(len(v.motor.pendientes) == 1, "a la segunda, propone la corrección con botones")
@@ -278,6 +297,8 @@ def main() -> None:
     comprobar("245 °C sin hilos" in (C.DIR_FILAMENTOS / "elegoo-petg-rapid.md").read_text(),
               "el informe añade lo aprendido al historial de la ficha")
     comprobar(any(f.suffix == ".md" for f in (TMP / "informes").iterdir()), "informe final guardado")
+    comprobar("Modo B" in json.dumps(LLAMADAS[-1]["system"], ensure_ascii=False),
+              "el informe aplica la skill ad5m-slicer-engineer con el perfil")
     comprobar(any("Coste de vigilancia" in e[1] for e in ENVIADOS), "el informe incluye el coste")
 
     shutil.rmtree(TMP, ignore_errors=True)

@@ -100,3 +100,6 @@ FICHERO_APRENDIZAJES = DIR_SKILL / "aprendizajes.md"
 # Fichas de filamento (marca + tipo). La activa se elige con /filamento o con FILAMENTO.
 DIR_FILAMENTOS = DIR_SKILL / "filamentos"
 FILAMENTO = os.getenv("FILAMENTO", "").strip()
+# Carpeta donde guardas los .3mf laminados (Orca → Exportar). Vacía = no leer el perfil.
+DIR_LAMINADOS = Path(os.getenv("DIR_LAMINADOS")) if os.getenv("DIR_LAMINADOS", "").strip() else None
+DIR_SKILLS = RAIZ / "skills"

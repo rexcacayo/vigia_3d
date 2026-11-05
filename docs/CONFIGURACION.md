@@ -41,6 +41,7 @@ actualizar, usa `bash instalar.sh`, que completa tu `.env` sin tocar lo que ya t
 | `FALLOS_CAMARA_AVISO` | `3` | Avisar tras N fallos seguidos de cámara |
 | `ZOOM_REGION` | `0.15,0.2,0.85,0.9` | Zona de la foto (fracciones x0,y0,x1,y1) que se amplía |
 | `FILTRO_CON_ZOOM` | `true` | El filtro mira también la ampliación (más preciso, ~2× su coste) |
+| `DIR_LAMINADOS` | *(vacío)* | Carpeta donde guardas los `.3mf` laminados de Orca. El vigía busca ahí el que imprime la máquina (por nombre), lee su perfil y lo usa en el diagnóstico y en el informe. En WSL, p. ej. `/mnt/c/Users/<usuario>/Documents/laminados` |
 | `FILAMENTO` | *(vacío)* | Ficha de filamento por defecto (p. ej. `elegoo-petg-rapid`); `/filamento` en Telegram manda sobre esto |
 | `AUTO_PAUSA` | `true` | Ante un "detener": pausa, comprueba que la máquina está pausada y avisa para que la revises (con `false` solo te da el botón) |
 | `RECORDATORIO_PAUSA_MIN` | `5` | Mientras siga pausada por el vigía, recuerda cada N min con foto (0 = no recordar) |

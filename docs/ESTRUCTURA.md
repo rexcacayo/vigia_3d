@@ -21,6 +21,7 @@ vigia_3d/
 │   ├── vision.py              ← llamadas a Claude: filtro, diagnóstico, preguntas, informe, coste
 │   ├── correcciones.py        ← reglas que validan/aplican/revierten correcciones
 │   ├── telegram.py            ← bot: envío con botones y escucha de órdenes
+│   ├── perfil.py              ← lee el perfil de Orca del .3mf que se imprime
 │   ├── filamentos.py          ← fichas de filamento: activa, lectura, historial aprendido
 │   ├── probar.py              ← verificador de adaptadores (solo lectura)
 │   └── impresoras/            ← adaptadores (uno por familia de impresoras)
@@ -36,6 +37,9 @@ vigia_3d/
 │   └── filamentos/            ← una ficha por marca+tipo (crece sola con cada informe)
 │       ├── _plantilla.md
 │       └── elegoo-petg-rapid.md
+│
+├── skills/                    ← skills reutilizables (formato Agent Skills: carpeta + SKILL.md)
+│   └── ad5m-slicer-engineer/  ← perfiles de Orca para la AD5M Pro y análisis foto + perfil
 │
 ├── tests/
 │   └── simulacion.py          ← impresión simulada de principio a fin (sin hardware)

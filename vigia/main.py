@@ -11,6 +11,7 @@ import anthropic
 from . import config as C
 from .maquina import P
 from . import filamentos as F
+from . import perfil as PF
 from . import vision as V
 from .correcciones import Motor
 from .telegram import Bot, esc
@@ -104,6 +105,7 @@ class Vigia:
     def _nuevo_trabajo(self, e: dict) -> None:
         self.trabajo = {"fichero": e.get("fichero"), "material": e.get("material"),
                         "filamento": F.actual(),
+                        "perfil": PF.del_trabajo(e.get("fichero")),
                         "inicio": datetime.now().isoformat(timespec="seconds"),
                         "capas_total": (e.get("capa") or {}).get("total"),
                         "casos": [], "correcciones": [], "feedback": []}
@@ -282,7 +284,8 @@ class Vigia:
 
         try:
             with self.lock:
-                diag = V.diagnosticar(list(self.historial), e, list(self.capas_hist))
+                diag = V.diagnosticar(list(self.historial), e, list(self.capas_hist),
+                                      (self.trabajo or {}).get("perfil"))
         except V.PresupuestoAgotado:
             self._aviso_presupuesto_agotado()
             return
@@ -524,7 +527,8 @@ class Vigia:
                 with self.lock:
                     self.historial.append(j)
                     self.capas_hist.append((e.get("capa") or {}).get("actual"))
-                    d = V.diagnosticar(list(self.historial), e, list(self.capas_hist))
+                    d = V.diagnosticar(list(self.historial), e, list(self.capas_hist),
+                                      (self.trabajo or {}).get("perfil"))
                 cid = self._guardar_caso(j, e, d, "parte")
                 self.bot.foto(j, f"📋 <b>Parte</b> {_icono(d)}\n{self._texto_estado(e)}\n\n{self._texto_diag(d)}",
                               self._botones_feedback(cid))

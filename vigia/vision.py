@@ -11,6 +11,7 @@ from PIL import Image
 
 from . import config as C
 from . import filamentos as F
+from . import perfil as PF
 from .maquina import P
 
 log = logging.getLogger("vigia.vision")
@@ -206,7 +207,8 @@ def filtrar(jpeg: bytes) -> dict:
                  getattr(resp, "stop_reason", None))
 
 
-def diagnosticar(imagenes: list[bytes], estado: dict, capas: list | None = None) -> dict:
+def diagnosticar(imagenes: list[bytes], estado: dict, capas: list | None = None,
+                 perfil: dict | None = None) -> dict:
     contenido = []
     for n, img in enumerate(imagenes, 1):
         capa = capas[n - 1] if capas and len(capas) == len(imagenes) else None
@@ -216,6 +218,8 @@ def diagnosticar(imagenes: list[bytes], estado: dict, capas: list | None = None)
     contenido.append({"type": "text", "text": "Ampliación de la zona de la pieza del fotograma más reciente:"})
     contenido.append(_bloque(ampliar(imagenes[-1])))
     contenido.append({"type": "text", "text": f"Estado de la máquina: {_resumen_estado(estado)}"})
+    if perfil:
+        contenido.append({"type": "text", "text": PF.texto(perfil)})
     sistema = [{"type": "text", "text": sistema_diagnostico(), "cache_control": {"type": "ephemeral"}}]
     # Si la respuesta llega cortada (max_tokens) o mal formada, se reintenta una vez con más margen.
     for intento, max_tokens in enumerate((C.MAX_TOKENS_DIAG, C.MAX_TOKENS_DIAG * 2)):
@@ -268,13 +272,25 @@ fallos y su causa, falsas alarmas del vigía). Si no hay nada nuevo, una viñeta
 No inventes datos que no estén en el registro. Si todo fue bien, dilo y sé breve."""
 
 
+def _skill_slicer() -> str:
+    f = C.DIR_SKILLS / "ad5m-slicer-engineer" / "SKILL.md"
+    if not f.exists():
+        return ""
+    texto = f.read_text(encoding="utf-8")
+    return texto.split("# Modo A:")[0]  # el informe solo necesita el modo B (análisis)
+
+
 def informe_postmortem(registro: dict) -> str:
+    slicer = _skill_slicer() if registro.get("perfil") else ""
     resp = _crear(
-        model=C.MODELO_DIAG, max_tokens=1200,
+        model=C.MODELO_DIAG, max_tokens=2000,
         system=[{"type": "text", "text": INFORME + "\n\n---\n\n" + P.DESCRIPCION
                   + "\n\n---\n\n" + _leer("materiales.md")
                   + ("\n\n---\n\n## Ficha del filamento\n" + F.ficha(registro.get("filamento"))
-                     if registro.get("filamento") else "")}],
+                     if registro.get("filamento") else "")
+                  + ("\n\n---\n\n" + slicer + "\nTienes el perfil laminado en el registro "
+                     "(clave «perfil»): añade al informe la sección del Modo B (veredicto y tabla "
+                     "clave · actual · propuesto · motivo · evidencia)." if slicer else "")}],
         messages=[{"role": "user", "content": json.dumps(registro, ensure_ascii=False)}],
     )
     return "".join(b.text for b in resp.content if b.type == "text").strip()
