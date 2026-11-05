@@ -7,6 +7,7 @@
 import logging
 import os
 import socket
+import time
 
 import requests
 
@@ -102,6 +103,19 @@ def capturar() -> bytes:
         encender_camara()
     except Exception as e:  # noqa: BLE001
         log.debug("No se pudo pedir el stream: %s", e)
+    for intento in range(4):
+        try:
+            return _fotograma()
+        except requests.ConnectionError:
+            # El stream tarda unos segundos en abrirse tras streamCtrl_cmd
+            if intento == 3:
+                raise RuntimeError("La cámara no abre el puerto 8080: ¿está activada en la "
+                                   "pantalla de la impresora (Ajustes → Cámara)?") from None
+            time.sleep(3)
+    raise RuntimeError("No se pudo extraer un fotograma del stream")
+
+
+def _fotograma() -> bytes:
     with requests.get(CAMARA, stream=True, timeout=(5, 10)) as r:
         r.raise_for_status()
         buf = b""
