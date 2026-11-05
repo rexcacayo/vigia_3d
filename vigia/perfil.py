@@ -83,10 +83,17 @@ def buscar(fichero: str | None) -> Path | None:
     if not (fichero and C.DIR_LAMINADOS and C.DIR_LAMINADOS.exists()):
         return None
     nombre = Path(fichero).name
-    candidatos = [p for p in C.DIR_LAMINADOS.rglob("*.3mf") if p.name == nombre]
-    if not candidatos:  # p. ej. la máquina quita «.3mf» o el slicer añade «.gcode»
+    todos = list(C.DIR_LAMINADOS.rglob("*.3mf"))
+    candidatos = [p for p in todos if p.name == nombre]
+    if not candidatos:
+        # Orca añade al nombre del laminado material y tiempo («pieza_v2_ASA_7h29m.gcode.3mf»)
+        # mientras que el proyecto guardado se llama «pieza_v2.3mf»: vale el prefijo más largo.
         base = nombre.split(".")[0]
-        candidatos = [p for p in C.DIR_LAMINADOS.rglob("*.3mf") if p.name.split(".")[0] == base]
+        candidatos = [p for p in todos
+                      if base == p.name.split(".")[0] or base.startswith(p.name.split(".")[0] + "_")]
+        if candidatos:
+            largo = max(len(p.name.split(".")[0]) for p in candidatos)
+            candidatos = [p for p in candidatos if len(p.name.split(".")[0]) == largo]
     return max(candidatos, key=lambda p: p.stat().st_mtime) if candidatos else None
 
 
